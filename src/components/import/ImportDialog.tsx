@@ -1,5 +1,5 @@
 import { useMemo, useState, type DragEvent } from 'react';
-import { AlertTriangle, FileJson, Upload } from 'lucide-react';
+import { AlertTriangle, FileJson, Info, ShieldCheck, Upload } from 'lucide-react';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useDialogStore } from '@/store/dialogStore';
 import { useUiStore } from '@/store/uiStore';
@@ -18,18 +18,17 @@ function ImportContent() {
   const close = () => useDialogStore.getState().setImporting(false);
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
-  const [normalizeIds, setNormalizeIds] = useState(true);
   const [dragOver, setDragOver] = useState(false);
 
   const result = useMemo(() => {
     if (!text.trim()) return null;
     try {
-      return { ok: true as const, ...importPostman(JSON.parse(text), { normalizeIds }) };
+      return { ok: true as const, ...importPostman(JSON.parse(text)) };
     } catch (e) {
       const message = e instanceof ImportError ? e.message : e instanceof SyntaxError ? `JSON inválido: ${e.message}` : String(e);
       return { ok: false as const, error: message };
     }
-  }, [text, normalizeIds]);
+  }, [text]);
 
   const readFile = async (file: File) => {
     setFileName(file.name);
@@ -54,7 +53,7 @@ function ImportContent() {
   return (
     <LargeDialog
       title="Importar collection do Postman"
-      subtitle="Formato Postman v2.0/v2.1 (.postman_collection.json). A importação cria uma nova collection; nada existente é alterado."
+      subtitle="Formato Postman v2.0/v2.1. A collection entra exatamente como está; mudanças só acontecem pelas ações que você escolher depois."
       onClose={close}
       footer={
         <>
@@ -96,23 +95,24 @@ function ImportContent() {
               placeholder='{"info": {...}, "item": [...]}'
             />
           </details>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" checked={normalizeIds} onChange={(e) => setNormalizeIds(e.target.checked)} className="mt-0.5 accent-[var(--accent)]" />
+          <p className="flex items-start gap-2 rounded-md border border-ok/40 bg-ok/10 p-3 text-sm">
+            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-ok" />
             <span>
-              Reorganizar IDs no padrão <code className="font-mono">TC-&lt;código&gt;-NNN</code>
-              <span className="block text-xs text-muted">O nome original vira a descrição do ID. IDs que já seguem o padrão são mantidos.</span>
+              Nada é renomeado, reordenado ou convertido. Nomes, scripts, variáveis, autenticação, exemplos de resposta e
+              campos que a ferramenta não edita são preservados e voltam iguais na exportação.
             </span>
-          </label>
+          </p>
         </section>
 
         <section className="flex flex-col gap-3 text-sm">
           <h3 className="font-semibold">Como a estrutura é mapeada</h3>
           <ul className="list-disc space-y-1 pl-5 text-muted">
-            <li>Pasta de 1º nível → <b className="text-fg">Folder</b></li>
-            <li>Pasta de 2º nível → <b className="text-fg">Cenário</b> (código sugerido pelo nome)</li>
-            <li>Pasta de 3º nível → <b className="text-fg">ID de Teste</b>; pastas mais profundas são achatadas dentro do ID</li>
-            <li>Requisição solta num cenário → um ID por requisição; soltas acima disso → contêiner "Geral"</li>
-            <li>Scripts e variáveis de cada nível são mantidos (inclusive as variáveis exportadas por esta ferramenta)</li>
+            <li>Pasta de 1º nível → <b className="text-fg">Folder</b>; 2º nível → <b className="text-fg">Cenário</b>; 3º nível → <b className="text-fg">ID de Teste</b></li>
+            <li>Pastas abaixo do 3º nível continuam existindo dentro do ID e são recriadas na exportação</li>
+            <li>
+              Requisições fora desse encaixe (ex.: soltas na raiz) ficam em contêineres <i>sintéticos</i>, só para navegação
+              na ferramenta: eles não viram pastas na exportação
+            </li>
           </ul>
 
           {result && !result.ok && (
@@ -129,6 +129,7 @@ function ImportContent() {
                 <Badge>{result.stats.testIds} IDs</Badge>
                 <Badge>{result.stats.requests} requisições</Badge>
                 <Badge>{result.collection.variables.length} variáveis globais</Badge>
+                {result.stats.synthetic > 0 && <Badge tone="accent">{result.stats.synthetic} contêiner(es) sintético(s)</Badge>}
               </div>
               <div className="max-h-48 overflow-y-auto text-xs">
                 {result.collection.folders.map((f) => (
@@ -136,17 +137,19 @@ function ImportContent() {
                     <div className="font-medium">{f.name}</div>
                     {f.scenarios.map((s) => (
                       <div key={s.id} className="pl-3 text-muted">
-                        <span className="font-mono">{s.idCode}</span> {s.name} — {s.testIds.length} ID(s)
+                        {s.name} — {s.testIds.length} item(ns)
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
-              {result.warnings.length > 0 && (
-                <details className="text-xs text-warn" open={result.warnings.length <= 5}>
-                  <summary className="cursor-pointer">{result.warnings.length} aviso(s)</summary>
+              {result.notes.length > 0 && (
+                <details className="text-xs text-muted" open={result.notes.length <= 5}>
+                  <summary className="flex cursor-pointer items-center gap-1">
+                    <Info size={12} /> {result.notes.length} item(ns) preservado(s) sem edição na ferramenta
+                  </summary>
                   <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                    {result.warnings.map((w, i) => (
+                    {result.notes.map((w, i) => (
                       <li key={i}>{w}</li>
                     ))}
                   </ul>

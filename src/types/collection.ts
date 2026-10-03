@@ -21,7 +21,34 @@ export type Variable = {
   type: VariableType;
   scope: VariableScope;
   description: string;
+  /**
+   * Onde a variável vive no Postman. "postman": no campo `variable` do item
+   * (veio de uma importação e volta para lá). Padrão: criada na ferramenta,
+   * exportada como pm.variables.set(...) no pré-request do nível.
+   */
+  storage?: 'script' | 'postman';
+  /** Objeto original do Postman (preservado na exportação). */
+  extra?: PostmanRaw;
 };
+
+/** Objeto JSON original do Postman, guardado para exportar sem perdas. */
+export type PostmanRaw = Record<string, unknown>;
+
+/**
+ * Dados preservados de uma importação. A ferramenta só sobrescreve os campos
+ * que modela; o resto (auth, exemplos de resposta, ids, configurações…) volta
+ * igual na exportação.
+ */
+export type Imported = {
+  postman?: PostmanRaw;
+};
+
+/**
+ * Contêiner criado só para encaixar a collection na hierarquia (ex.: requisições
+ * soltas na raiz). Não existe como pasta no Postman e não é exportado como pasta,
+ * a menos que receba descrição, scripts ou variáveis.
+ */
+export type Synthetic = { synthetic?: boolean };
 
 /** Header como lista (e não Record) para preservar ordem, permitir chaves vazias durante a edição e desabilitar itens. */
 export type Header = {
@@ -29,6 +56,7 @@ export type Header = {
   key: string;
   value: string;
   enabled: boolean;
+  extra?: PostmanRaw;
 };
 
 /** Campos comuns a todos os níveis que possuem scripts. */
@@ -39,7 +67,7 @@ export type Scripted = {
   postRequestScripts: string;
 };
 
-export type Request = Scripted & {
+export type Request = Scripted & Imported & {
   id: string;
   name: string;
   method: HttpMethod;
@@ -47,17 +75,24 @@ export type Request = Scripted & {
   headers: Header[];
   /** Body cru (normalmente JSON). String vazia = sem body. */
   body: string;
+  /**
+   * Pastas do Postman abaixo do ID (4º nível ou mais) onde a requisição está,
+   * como chaves de `TestId.subfolders`. Preserva a estrutura original.
+   */
+  folderPath?: string[];
 };
 
-export type TestId = Scripted & {
+export type TestId = Scripted & Imported & Synthetic & {
   id: string;
   name: string;
   description: string;
   requests: Request[];
   variables: Variable[];
+  /** Pastas originais abaixo do ID (sem os filhos), indexadas pela chave usada em `Request.folderPath`. */
+  subfolders?: Record<string, PostmanRaw>;
 };
 
-export type Scenario = Scripted & {
+export type Scenario = Scripted & Imported & Synthetic & {
   id: string;
   name: string;
   description: string;
@@ -67,7 +102,7 @@ export type Scenario = Scripted & {
   variables: Variable[];
 };
 
-export type Folder = Scripted & {
+export type Folder = Scripted & Imported & Synthetic & {
   id: string;
   name: string;
   description: string;
@@ -75,7 +110,7 @@ export type Folder = Scripted & {
   variables: Variable[];
 };
 
-export type Collection = Scripted & {
+export type Collection = Scripted & Imported & {
   id: string;
   name: string;
   description: string;

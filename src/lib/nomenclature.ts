@@ -75,12 +75,13 @@ export function uniqueName(base: string, siblings: string[], suffix = 'cópia'):
 }
 
 /**
- * Ordena os IDs do cenário pelo número (TC-XXX-001, 002…). IDs fora do padrão
- * vão para o fim, mantendo a ordem relativa entre eles.
+ * Ordena pelo número os IDs que seguem o padrão TC-<código>-NNN, apenas entre
+ * as posições que eles já ocupam. IDs fora do padrão (ex.: nomes de uma
+ * collection importada) não saem do lugar.
  */
 export function sortTestIds<T extends { name: string }>(code: string, testIds: T[]): T[] {
-  const numbered = testIds
-    .map((t, i) => ({ t, i, n: parseTestIdNumber(code, t.name) }))
-    .sort((a, b) => (a.n ?? Infinity) - (b.n ?? Infinity) || a.i - b.i);
-  return numbered.map((x) => x.t);
+  const numbered = testIds.map((t) => parseTestIdNumber(code, t.name));
+  const sorted = testIds.filter((_, i) => numbered[i] !== null).sort((a, b) => parseTestIdNumber(code, a.name)! - parseTestIdNumber(code, b.name)!);
+  let k = 0;
+  return testIds.map((t, i) => (numbered[i] === null ? t : sorted[k++]));
 }

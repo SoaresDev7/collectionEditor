@@ -36,7 +36,8 @@ export function resolveVariables(path: NodePath): ResolvedVariable[] {
     const scope = SCOPE_BY_KIND[ref.kind];
     if (!scope || !('variables' in ref.node)) continue;
     for (const variable of ref.node.variables) {
-      if (!variable.key) continue;
+      // Variáveis desativadas no Postman não valem em tempo de execução.
+      if (!variable.key || variable.extra?.disabled === true) continue;
       list.push({ variable, scope, sourceName: ref.node.name, sourceId: ref.node.id, overridden: false });
     }
   }

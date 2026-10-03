@@ -124,7 +124,15 @@ export const TreeRowItem = memo(function TreeRowItem({ row, selected, renaming, 
       {renaming ? (
         <RenameInput initial={ref.node.name} onDone={(v) => actions.onRenameCommit(id, v)} />
       ) : (
-        <span className={cx('min-w-0 flex-1 truncate', isRoot && 'font-semibold', match && 'font-semibold text-accent')}>
+        <span
+          title={'synthetic' in ref.node && ref.node.synthetic ? 'Contêiner sintético: não existe como pasta no Postman' : undefined}
+          className={cx(
+            'min-w-0 flex-1 truncate',
+            isRoot && 'font-semibold',
+            match && 'font-semibold text-accent',
+            'synthetic' in ref.node && ref.node.synthetic && 'text-muted italic',
+          )}
+        >
           {ref.node.name || <em className="text-muted">sem nome</em>}
         </span>
       )}

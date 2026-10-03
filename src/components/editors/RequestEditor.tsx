@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { AlertTriangle, Braces, CheckCircle2, XCircle } from 'lucide-react';
-import { HTTP_METHODS, type Collection, type HttpMethod, type NodePath, type Request } from '@/types/collection';
+import { HTTP_METHODS, type Collection, type HttpMethod, type NodePath, type Request, type TestId } from '@/types/collection';
+import { PreservedNotice, preservedFields } from './shared/PreservedNotice';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
 import { notify } from '@/store/feedbackStore';
@@ -95,6 +96,16 @@ export function RequestEditor({ path }: { path: NodePath }) {
   const bodyCheck = validateJson(request.body);
   const bodyIgnored = request.body.trim() && (request.method === 'GET' || request.method === 'HEAD');
 
+  const rawRequest = (typeof request.postman?.request === 'object' ? request.postman.request : undefined) as Record<string, unknown> | undefined;
+  const preserved = preservedFields(request.postman, rawRequest);
+  const rawBodyMode = (rawRequest?.body as { mode?: string } | undefined)?.mode;
+  const nonRawBody = rawBodyMode && rawBodyMode !== 'raw' && !request.body.trim() ? rawBodyMode : null;
+  const testId = path[path.length - 2]?.node as TestId | undefined;
+  const subfolderTrail = request.folderPath
+    ?.map((k) => String(testId?.subfolders?.[k]?.name ?? '?'))
+    .join(' › ');
+  const methods: string[] = HTTP_METHODS.includes(request.method) ? [...HTTP_METHODS] : [...HTTP_METHODS, request.method];
+
   const formatBody = () => {
     const formatted = formatJson(request.body);
     if (formatted === null) notify('error', 'Body não é um JSON válido (variáveis sem aspas não podem ser formatadas).');
@@ -105,6 +116,23 @@ export function RequestEditor({ path }: { path: NodePath }) {
     <div className="flex flex-col gap-5">
       <EditorHeader refNode={ref} />
 
+      {(preserved.length > 0 || nonRawBody || subfolderTrail) && (
+        <PreservedNotice>
+          {subfolderTrail && (
+            <p>
+              Dentro das pastas do Postman: <b className="text-fg">{subfolderTrail}</b> (recriadas na exportação).
+            </p>
+          )}
+          {preserved.length > 0 && <p>Preservado do Postman (exportado sem alteração): {preserved.join(', ')}.</p>}
+          {nonRawBody && (
+            <p>
+              Body do tipo <b className="text-fg">{nonRawBody}</b> preservado. Se você escrever um body aqui, ele substitui o
+              original por um body raw.
+            </p>
+          )}
+        </PreservedNotice>
+      )}
+
       <div className="flex flex-col gap-1">
         <div className="flex gap-2">
           <select
@@ -113,7 +141,7 @@ export function RequestEditor({ path }: { path: NodePath }) {
             aria-label="Método HTTP"
             className={cx('h-9 rounded-md border border-line bg-panel px-2 font-mono text-sm font-bold', `method-${request.method}`)}
           >
-            {HTTP_METHODS.map((m) => (
+            {methods.map((m) => (
               <option key={m} value={m} className={`method-${m}`}>
                 {m}
               </option>

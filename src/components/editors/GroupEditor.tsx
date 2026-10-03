@@ -4,7 +4,8 @@ import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
 import { childrenOf, nearest, walk } from '@/lib/tree';
 import { nextTestIdName } from '@/lib/nomenclature';
-import { Badge, Tabs } from '@/components/ui/primitives';
+import { Badge, Button, Tabs } from '@/components/ui/primitives';
+import { PreservedNotice, preservedFields } from './shared/PreservedNotice';
 import { EditorHeader } from './EditorHeader';
 import { ChildrenList } from './ChildrenList';
 import { NameField } from './shared/NameField';
@@ -71,6 +72,27 @@ export function GroupEditor({ path }: { path: NodePath }) {
   return (
     <div className="flex flex-col gap-5">
       <EditorHeader refNode={ref} />
+
+      {'synthetic' in node && node.synthetic && (
+        <PreservedNotice
+          action={
+            <Button size="sm" onClick={() => updateNode(node.id, { synthetic: false })}>
+              Tornar pasta real
+            </Button>
+          }
+        >
+          <p>
+            <b className="text-fg">Contêiner sintético.</b> Não existe como pasta no Postman: foi criado só para encaixar
+            requisições na hierarquia. Na exportação, os itens dentro dele saem no lugar original.
+          </p>
+          <p>Se você adicionar descrição, scripts ou variáveis, ele passa a ser exportado como pasta.</p>
+        </PreservedNotice>
+      )}
+      {preservedFields(node.postman).length > 0 && (
+        <PreservedNotice>
+          Preservado do Postman (exportado sem alteração): {preservedFields(node.postman).join(', ')}.
+        </PreservedNotice>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <NameField

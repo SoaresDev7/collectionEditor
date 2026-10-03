@@ -1,0 +1,64 @@
+{
+  "info": {
+    "_postman_id": "9f1c2d3e-0000-4000-8000-000000000001",
+    "name": "Empresa - Pagamentos",
+    "description": { "content": "Padrões internos **obrigatórios**.", "type": "text/markdown" },
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "123456"
+  },
+  "auth": { "type": "apikey", "apikey": [{ "key": "key", "value": "x-api-key", "type": "string" }] },
+  "item": [
+    { "name": "Healthcheck", "request": "{{host}}/health", "response": [] },
+    {
+      "name": "01 - Pagamentos",
+      "id": "f-1",
+      "description": "Fluxos de pagamento",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Listar pagamentos (solto)",
+          "id": "r-0",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{host}}/payments?page=1", "host": ["{{host}}"], "path": ["payments"], "query": [{ "key": "page", "value": "1" }] } },
+          "response": [{ "name": "200 OK", "code": 200, "body": "[]" }]
+        },
+        {
+          "name": "CT01 - Cartão",
+          "variable": [{ "key": "bandeira", "value": "VISA", "type": "string" }],
+          "event": [{ "listen": "prerequest", "script": { "id": "s-1", "type": "text/javascript", "exec": ["// padrão da empresa", "const util = () => 1;"] } }],
+          "item": [
+            {
+              "name": "CT01.1 Aprovado",
+              "item": [
+                {
+                  "name": "Criar pagamento",
+                  "event": [{ "listen": "test", "script": { "exec": ["pm.test('201', () => pm.response.to.have.status(201));"], "type": "text/javascript" } }],
+                  "request": {
+                    "method": "POST",
+                    "header": [{ "key": "Content-Type", "value": "application/json", "description": "obrigatório" }, { "key": "X-Debug", "value": "1", "disabled": true }],
+                    "body": { "mode": "raw", "raw": "{\n    \"valor\": {{valor}},\n    \"bandeira\": \"{{bandeira}}\"\n}", "options": { "raw": { "language": "json" } } },
+                    "url": { "raw": "{{host}}/payments", "host": ["{{host}}"], "path": ["payments"] },
+                    "description": "Cria o pagamento"
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Subpasta nível 4",
+                  "description": "fica dentro do ID",
+                  "item": [
+                    { "name": "Consultar", "request": { "method": "GET", "url": "{{host}}/payments/{{id}}" } },
+                    { "name": "Mais fundo", "item": [{ "name": "Estornar", "request": { "method": "POST", "url": "{{host}}/refunds", "body": { "mode": "urlencoded", "urlencoded": [{ "key": "motivo", "value": "teste" }] } } }] }
+                  ]
+                },
+                { "name": "Depois da subpasta", "request": { "method": "PURGE", "url": "{{host}}/cache" } }
+              ]
+            },
+            { "name": "Requisição solta no cenário", "request": { "method": "DELETE", "url": "{{host}}/payments/1" } }
+          ]
+        }
+      ]
+    },
+    { "name": "Raiz no fim", "request": { "method": "GET", "url": "{{host}}/x" } }
+  ],
+  "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [""] } }],
+  "variable": [{ "key": "host", "value": "https://api.empresa.com" }, { "key": "valor", "value": 100, "type": "number" }, { "key": "off", "value": "1", "disabled": true }]
+}

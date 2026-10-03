@@ -199,6 +199,12 @@ export const useCollectionStore = create<CollectionState>()(
               case 'testId': {
                 const scenario = nearest(path, 'scenario')!.node;
                 const t = cloneTestId(ref.node);
+                // Só aplica a nomenclatura da ferramenta a IDs que já a seguem.
+                if (parseTestIdNumber(scenario.idCode, ref.node.name) === null) {
+                  t.name = uniqueName(ref.node.name, names);
+                  siblings.splice(index + 1, 0, t);
+                  return t.id;
+                }
                 t.name = nextTestIdName(scenario);
                 scenario.testIds.push(t);
                 resort(scenario);
@@ -224,10 +230,14 @@ export const useCollectionStore = create<CollectionState>()(
             const scenario = nearest(path, 'scenario')!.node;
             const index = scenario.testIds.findIndex((t) => t.id === id);
 
+            const followsPattern = parseTestIdNumber(scenario.idCode, ref.node.name) !== null;
             let next = maxTestIdNumber(scenario) + 1;
+            const names = scenario.testIds.map((t) => t.name);
             const copies = Array.from({ length: count }, () => {
               const t = cloneTestId(ref.node);
-              t.name = formatTestIdName(scenario.idCode, next++);
+              // Fora do padrão TC, mantém o nome original com sufixo "(cópia N)".
+              t.name = followsPattern ? formatTestIdName(scenario.idCode, next++) : uniqueName(ref.node.name, names);
+              names.push(t.name);
               return t;
             });
             scenario.testIds.splice(index + 1, 0, ...copies);

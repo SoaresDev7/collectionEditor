@@ -60,6 +60,11 @@ export function VariablesTable({ scope, variables, onChange }: Props) {
                       onChange={(e) => update(v.id, { key: e.target.value })}
                     />
                     {keyErr && <span className="text-[11px] text-danger">{keyErr}</span>}
+                    {v.storage === 'postman' && v.scope !== 'global' && (
+                      <span className="text-[11px] text-muted" title="Veio do campo variable do item no Postman e volta para ele na exportação">
+                        do Postman
+                      </span>
+                    )}
                   </td>
                   <td className="p-1">
                     <Input

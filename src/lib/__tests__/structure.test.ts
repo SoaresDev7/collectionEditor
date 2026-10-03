@@ -38,3 +38,21 @@ describe('estrutura', () => {
     expect(clash.every((p) => p.conflict)).toBe(true);
   });
 });
+
+describe('itens importados fora do padrão', () => {
+  beforeEach(() => useCollectionStore.setState({ collections: [buildMockCollection()], activeCollectionId: null }, false));
+  beforeEach(() => useCollectionStore.setState({ activeCollectionId: useCollectionStore.getState().collections[0].id }));
+
+  it('duplicar mantém o nome original e a posição; IDs fora do padrão não são reordenados', () => {
+    const scenario = active().folders[0].scenarios[0];
+    useCollectionStore.getState().renameNodes([{ id: scenario.testIds[0].id, name: 'CT99 - Empresa' }]);
+    const id = active().folders[0].scenarios[0].testIds[0].id;
+    useCollectionStore.getState().duplicateTestIdN(id, 2);
+    expect(active().folders[0].scenarios[0].testIds.map((t) => t.name)).toEqual([
+      'CT99 - Empresa',
+      'CT99 - Empresa (cópia)',
+      'CT99 - Empresa (cópia 2)',
+      'TC-LCV-002',
+    ]);
+  });
+});

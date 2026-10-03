@@ -129,13 +129,15 @@ Clicar num resultado abre o item, a aba correspondente e posiciona o editor na l
 
 ## Importar collection do Postman
 
-Botão **Importar** (`Ctrl+O`): arraste o arquivo ou cole o JSON. A importação cria uma nova collection:
+Botão **Importar** (`Ctrl+O`): arraste o arquivo ou cole o JSON (Postman v2.0/v2.1). A importação é **fiel ao original**: nada é renomeado, reordenado ou convertido. Padronizações ficam a cargo de quem edita, pelas ações da ferramenta.
 
-- pasta de 1º nível → Folder; 2º nível → Cenário (código sugerido pelo nome ou tirado de IDs `TC-XXX-NNN`); 3º nível → ID; pastas mais profundas são achatadas dentro do ID (scripts delas vão para as requisições);
-- requisições soltas num cenário viram um ID cada; soltas acima disso vão para um contêiner "Geral";
-- scripts, variáveis da collection e o bloco de variáveis exportado por esta ferramenta são restaurados;
-- opção **Reorganizar IDs no padrão** (nome original vai para a descrição);
-- bodies `urlencoded`/`form-data`/GraphQL são convertidos para JSON e autenticação Bearer vira header `Authorization`; o resto gera avisos na pré-visualização.
+- **Encaixe na hierarquia**: pasta de 1º nível → Folder, 2º → Cenário, 3º → ID.
+- **Pastas abaixo do 3º nível** continuam existindo dentro do ID (a requisição mostra o caminho) e são recriadas na exportação.
+- **Contêineres sintéticos** (em itálico na árvore) acomodam requisições fora desse encaixe, por exemplo soltas na raiz. Eles não viram pastas na exportação, a menos que recebam descrição, scripts ou variáveis, ou que você use **Tornar pasta real**.
+- **Preservado sem edição** e exportado igual: autenticação, exemplos de resposta, ids, `protocolProfileBehavior`, objetos de URL e descrição, bodies que não são raw (urlencoded, form-data…), métodos fora da lista, campos extras de headers e variáveis.
+- **Exportação**: parte do JSON original e sobrescreve só o que foi editado. Importar e exportar sem mexer em nada devolve o mesmo arquivo (coberto por teste).
+- Variáveis do campo `variable` de pastas voltam para esse campo; variáveis desativadas no Postman não entram na resolução.
+- Ações da ferramenta respeitam nomes fora do padrão: duplicar um ID "CT01 - Login" gera "CT01 - Login (cópia)", e a reordenação automática só mexe em IDs no padrão `TC-<código>-NNN`.
 
 ## Renomear IDs em massa
 
