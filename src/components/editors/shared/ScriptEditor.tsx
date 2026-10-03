@@ -28,7 +28,14 @@ export function ScriptEditor({ nodeId, phase, value, onChange, help }: Props) {
           </span>
         )}
       </div>
-      <CodeEditor language="javascript" path={`${nodeId}/${phase}.js`} value={value} onChange={onChange} height={360} />
+      <CodeEditor
+        language="javascript"
+        path={`${nodeId}/${phase}.js`}
+        value={value}
+        onChange={onChange}
+        height={360}
+        revealTarget={{ nodeId, field: phase }}
+      />
     </div>
   );
 }

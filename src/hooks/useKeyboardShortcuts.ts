@@ -11,6 +11,10 @@ export const SHORTCUTS: { keys: string; description: string }[] = [
   { keys: 'Ctrl+D', description: 'Duplicar item selecionado' },
   { keys: 'Ctrl+E', description: 'Exportar collection' },
   { keys: 'Alt+R', description: 'Relatório de alterações' },
+  { keys: 'Ctrl+Shift+F', description: 'Buscar usos (variáveis, funções, texto)' },
+  { keys: 'Ctrl+O', description: 'Importar collection do Postman' },
+  { keys: 'Alt+I', description: 'Renomear IDs em massa' },
+  { keys: 'Alt+↑ / Alt+↓', description: 'Mover item na árvore' },
   { keys: 'Alt+M', description: 'Edição em massa do body' },
   { keys: 'Ctrl+B', description: 'Mostrar/ocultar painel de variáveis' },
   { keys: 'Ctrl+Shift+L', description: 'Alternar tema claro/escuro' },
@@ -36,7 +40,18 @@ export function useKeyboardShortcuts() {
         fn();
       };
 
-      if (mod && key === 'k') return run(() => document.getElementById('tree-search')?.focus());
+      if (mod && e.shiftKey && key === 'f')
+        return run(() => {
+          ui.setSidebarTab('search');
+          requestAnimationFrame(() => document.getElementById('usage-search')?.focus());
+        });
+      if (mod && key === 'k')
+        return run(() => {
+          ui.setSidebarTab('tree');
+          requestAnimationFrame(() => document.getElementById('tree-search')?.focus());
+        });
+      if (mod && key === 'o') return run(() => useDialogStore.getState().setImporting(true));
+      if (e.altKey && e.code === 'KeyI') return run(() => useDialogStore.getState().openRename());
       if (mod && key === 'e') return run(collectionActions.exportActive);
       if (mod && key === 'b') return run(ui.toggleVariablesPanel);
       if (e.altKey && e.code === 'KeyR') return run(() => useDialogStore.getState().setReport(true));

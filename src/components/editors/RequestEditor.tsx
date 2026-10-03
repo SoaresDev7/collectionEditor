@@ -199,6 +199,7 @@ export function RequestEditor({ path }: { path: NodePath }) {
               value={request.body}
               onChange={(body) => update({ body })}
               height={360}
+              revealTarget={{ nodeId: request.id, field: 'body' }}
             />
           </div>
         )}

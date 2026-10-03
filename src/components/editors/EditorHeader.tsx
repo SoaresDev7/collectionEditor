@@ -1,4 +1,5 @@
-import { Copy, CopyPlus, PencilRuler, Plus, Trash2 } from 'lucide-react';
+import { Copy, CopyPlus, FolderInput, Layers, PencilRuler, Plus, TextCursorInput, Trash2 } from 'lucide-react';
+import { Menu } from '@/components/ui/Menu';
 import { CHILD_KIND, KIND_LABEL, type NodeRef } from '@/types/collection';
 import { useNodeActions } from '@/hooks/useNodeActions';
 import { useDialogStore } from '@/store/dialogStore';
@@ -12,6 +13,14 @@ export function EditorHeader({ refNode }: { refNode: NodeRef }) {
   const id = refNode.node.id;
   const childKind = CHILD_KIND[refNode.kind];
   const isRoot = refNode.kind === 'collection';
+
+  /** IDs de teste dentro do item (pré-seleção das ações em massa; vazio na collection). */
+  const descendantIds = () => {
+    if (isRoot) return [];
+    const ids: string[] = [];
+    walk(refNode, (r) => r.kind === 'testId' && ids.push(r.node.id));
+    return ids;
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -34,17 +43,18 @@ export function EditorHeader({ refNode }: { refNode: NodeRef }) {
           </Button>
         )}
         {refNode.kind !== 'request' && (
-          <Button
-            size="sm"
-            icon={<PencilRuler size={14} />}
-            title="Editar campos do body nas requisições dos IDs selecionados"
-            onClick={() => {
-              const ids: string[] = [];
-              walk(refNode, (r) => r.kind === 'testId' && ids.push(r.node.id));
-              useDialogStore.getState().openBulkEdit(refNode.kind === 'collection' ? [] : ids);
-            }}
-          >
-            Editar body em massa
+          <Menu
+            label="Em massa"
+            icon={<Layers size={14} />}
+            items={[
+              { label: 'Editar body dos IDs', icon: <PencilRuler size={14} />, onSelect: () => useDialogStore.getState().openBulkEdit(descendantIds()) },
+              { label: 'Renomear IDs', icon: <TextCursorInput size={14} />, onSelect: () => useDialogStore.getState().openRename(descendantIds()) },
+            ]}
+          />
+        )}
+        {!isRoot && (
+          <Button size="sm" icon={<FolderInput size={14} />} onClick={() => useDialogStore.getState().setMove(id)} title="Mover para outro local (ou arraste na árvore)">
+            Mover
           </Button>
         )}
         {!isRoot && (

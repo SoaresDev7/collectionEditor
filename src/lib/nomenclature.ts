@@ -73,3 +73,14 @@ export function uniqueName(base: string, siblings: string[], suffix = 'cópia'):
   for (let i = 2; taken.has(candidate.toLowerCase()); i++) candidate = `${base} (${suffix} ${i})`;
   return candidate;
 }
+
+/**
+ * Ordena os IDs do cenário pelo número (TC-XXX-001, 002…). IDs fora do padrão
+ * vão para o fim, mantendo a ordem relativa entre eles.
+ */
+export function sortTestIds<T extends { name: string }>(code: string, testIds: T[]): T[] {
+  const numbered = testIds
+    .map((t, i) => ({ t, i, n: parseTestIdNumber(code, t.name) }))
+    .sort((a, b) => (a.n ?? Infinity) - (b.n ?? Infinity) || a.i - b.i);
+  return numbered.map((x) => x.t);
+}

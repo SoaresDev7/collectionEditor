@@ -67,5 +67,33 @@ export function useNodeActions() {
     notify('success', `${KIND_LABEL[ref.kind]} excluído.`);
   }, [store, ui]);
 
-  return useMemo(() => ({ add, duplicate, duplicateTestIdN, remove }), [add, duplicate, duplicateTestIdN, remove]);
+  /** Move para outro pai/posição, com feedback e seleção do item movido. */
+  const move = useCallback((id: string, parentId: string, index?: number) => {
+    const result = store.getState().moveNode(id, parentId, index);
+    if (!result.ok) {
+      notify('error', result.error);
+      return false;
+    }
+    ui.getState().setExpanded([parentId], true);
+    ui.getState().select(id);
+    if (result.renamedTo) notify('info', `Item movido e renomeado para ${result.renamedTo}.`);
+    return true;
+  }, [store, ui]);
+
+  /** Sobe (-1) ou desce (+1) o item entre os irmãos. */
+  const moveBy = useCallback((id: string, delta: -1 | 1) => {
+    const collection = activeCollection();
+    const path = collection && findPath(collection, id);
+    if (!path || path.length < 2) return;
+    const parent = path[path.length - 2];
+    const index = childrenOf(parent).findIndex((c) => c.node.id === id);
+    const target = index + delta;
+    if (target < 0 || target >= childrenOf(parent).length) return;
+    move(id, parent.node.id, delta > 0 ? target + 1 : target);
+  }, [move]);
+
+  return useMemo(
+    () => ({ add, duplicate, duplicateTestIdN, remove, move, moveBy }),
+    [add, duplicate, duplicateTestIdN, remove, move, moveBy],
+  );
 }

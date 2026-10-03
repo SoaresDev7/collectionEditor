@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Copy, Zap } from 'lucide-react';
+import { Copy, SearchCode, Zap } from 'lucide-react';
 import type { Collection, NodePath, VariableScope } from '@/types/collection';
 import { resolveVariables, scriptDefinedVariables, type ResolvedVariable } from '@/lib/variables';
 import { useUiStore } from '@/store/uiStore';
@@ -12,6 +12,8 @@ const SCOPE_LABEL: Record<VariableScope, string> = {
   scenario: 'Cenário',
   testId: 'ID de Teste',
 };
+
+const findUsages = (key: string) => useUiStore.getState().openSearch('variable', key);
 
 const copyRef = (key: string) => {
   void navigator.clipboard?.writeText(`{{${key}}}`);
@@ -32,6 +34,9 @@ function VariableRow({ r }: { r: ResolvedVariable }) {
           {r.overridden && ' · sobrescrita'}
         </button>
       </div>
+      <IconButton label="Ver usos" className="opacity-0 group-hover:opacity-100" onClick={() => findUsages(r.variable.key)}>
+        <SearchCode size={13} />
+      </IconButton>
       <IconButton label="Copiar referência" className="opacity-0 group-hover:opacity-100" onClick={() => copyRef(r.variable.key)}>
         <Copy size={13} />
       </IconButton>
@@ -79,6 +84,9 @@ export function VariablesPanel({ path }: { path: NodePath }) {
               {runtime.map((key) => (
                 <li key={key} className="group flex items-center gap-2 px-3 py-1 hover:bg-panel-2">
                   <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{key}</span>
+                  <IconButton label="Ver usos" className="opacity-0 group-hover:opacity-100" onClick={() => findUsages(key)}>
+                    <SearchCode size={13} />
+                  </IconButton>
                   <IconButton label="Copiar referência" className="opacity-0 group-hover:opacity-100" onClick={() => copyRef(key)}>
                     <Copy size={13} />
                   </IconButton>

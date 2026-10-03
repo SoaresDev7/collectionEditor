@@ -1,24 +1,66 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ChevronsDownUp, ChevronsUpDown, FolderPlus, Search, X } from 'lucide-react';
+import { ChevronsDownUp, ChevronsUpDown, FolderPlus, ListTree, Search, SearchCode, X } from 'lucide-react';
 import { useActiveCollection, useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
 import { notify } from '@/store/feedbackStore';
 import { useNodeActions } from '@/hooks/useNodeActions';
 import { childArray, findPath } from '@/lib/tree';
 import { isDuplicateName } from '@/lib/validation';
-import { IconButton, Input } from '@/components/ui/primitives';
+import { IconButton, Input, cx } from '@/components/ui/primitives';
+import { CHILD_KIND } from '@/types/collection';
+import { SearchPanel } from './SearchPanel';
 import { expandableIds, flattenTree } from './flattenTree';
 import { ROW_HEIGHT, TreeRowItem, type TreeRowActions } from './TreeRowItem';
 
 const OVERSCAN = 10;
 
+/** Painel lateral: árvore da collection ou busca de usos. */
 export function Sidebar() {
+  const tab = useUiStore((s) => s.sidebarTab);
+  const setTab = useUiStore((s) => s.setSidebarTab);
+  return (
+    <aside className="flex h-full min-h-0 flex-col border-r border-line bg-panel">
+      <div role="tablist" className="flex border-b border-line text-sm">
+        {(
+          [
+            ['tree', 'Estrutura', <ListTree key="i" size={14} />],
+            ['search', 'Buscar usos', <SearchCode key="i" size={14} />],
+          ] as const
+        ).map(([id, label, icon]) => (
+          <button
+            key={id}
+            role="tab"
+            type="button"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={cx(
+              '-mb-px flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2',
+              tab === id ? 'border-accent font-medium text-fg' : 'border-transparent text-muted hover:text-fg',
+            )}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'tree' ? <TreePanel /> : <SearchPanel />}
+    </aside>
+  );
+}
+
+type DropTarget = { rowId: string; position: 'before' | 'after' | 'inside' };
+
+function TreePanel() {
   const collection = useActiveCollection();
   const { selectedId, expanded, treeFilter, sidebarScrollTop } = useUiStore();
   const { select, toggleExpanded, setExpanded, setTreeFilter, setSidebarScrollTop } = useUiStore.getState();
   const updateNode = useCollectionStore((s) => s.updateNode);
   const nodeActions = useNodeActions();
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const dragging = useRef<{ id: string; kind: string } | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  const dropRef = useRef<DropTarget | null>(null);
+  dropRef.current = dropTarget;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(sidebarScrollTop);
@@ -83,8 +125,48 @@ export function Sidebar() {
       onDelete: (id) => void nodeActions.remove(id),
       onRenameStart: setRenamingId,
       onRenameCommit: commitRename,
+      onDragStart: (id) => {
+        const c = useCollectionStore.getState().collections.find((x) => x.id === collection?.id);
+        const ref = c && findPath(c, id)?.at(-1);
+        dragging.current = ref ? { id, kind: ref.kind } : null;
+      },
+      onDragOverRow: (row, ratio) => {
+        const d = dragging.current;
+        if (!d || row.ref.node.id === d.id) return false;
+        let position: DropTarget['position'] | null = null;
+        if (row.ref.kind === d.kind) position = ratio < 0.5 ? 'before' : 'after';
+        else if (CHILD_KIND[row.ref.kind] === d.kind) position = 'inside';
+        if (!position) {
+          if (dropRef.current) setDropTarget(null);
+          return false;
+        }
+        const next = { rowId: row.ref.node.id, position };
+        if (dropRef.current?.rowId !== next.rowId || dropRef.current.position !== next.position) setDropTarget(next);
+        return true;
+      },
+      onDrop: () => {
+        const d = dragging.current;
+        const t = dropRef.current;
+        dragging.current = null;
+        setDropTarget(null);
+        const c = useCollectionStore.getState().collections.find((x) => x.id === collection?.id);
+        if (!d || !t || !c) return;
+        if (t.position === 'inside') {
+          nodeActions.move(d.id, t.rowId);
+          return;
+        }
+        const path = findPath(c, t.rowId);
+        if (!path || path.length < 2) return;
+        const parent = path[path.length - 2];
+        const index = (childArray(parent) ?? []).findIndex((n) => n.id === t.rowId);
+        nodeActions.move(d.id, parent.node.id, t.position === 'before' ? index : index + 1);
+      },
+      onDragEnd: () => {
+        dragging.current = null;
+        setDropTarget(null);
+      },
     }),
-    [select, toggleExpanded, nodeActions, commitRename],
+    [select, toggleExpanded, nodeActions, commitRename, collection?.id],
   );
 
   if (!collection) return null;
@@ -95,10 +177,12 @@ export function Sidebar() {
     const go = (i: number) => rows[i] && select(rows[i].ref.node.id);
     switch (e.key) {
       case 'ArrowDown':
-        go(Math.min(rows.length - 1, selectedIndex + 1));
+        if (e.altKey && row) nodeActions.moveBy(row.ref.node.id, 1);
+        else go(Math.min(rows.length - 1, selectedIndex + 1));
         break;
       case 'ArrowUp':
-        go(Math.max(0, selectedIndex - 1));
+        if (e.altKey && row) nodeActions.moveBy(row.ref.node.id, -1);
+        else go(Math.max(0, selectedIndex - 1));
         break;
       case 'ArrowRight':
         if (!row?.hasChildren) return;
@@ -126,7 +210,7 @@ export function Sidebar() {
   const end = Math.min(rows.length, Math.ceil((scrollTop + viewport) / ROW_HEIGHT) + OVERSCAN);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col border-r border-line bg-panel">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-1 border-b border-line p-2">
         <div className="relative flex-1">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted" />
@@ -172,6 +256,7 @@ export function Sidebar() {
               selected={row.ref.node.id === selectedId || (!selectedId && row.ref.kind === 'collection')}
               renaming={renamingId === row.ref.node.id}
               actions={actions}
+              drop={dropTarget?.rowId === row.ref.node.id ? dropTarget.position : undefined}
             />
           ))}
         </div>
@@ -179,8 +264,8 @@ export function Sidebar() {
       </div>
 
       <div className="border-t border-line px-3 py-1.5 text-[11px] text-muted">
-        ↑↓ navegar · ←→ recolher/expandir · F2 renomear · Del excluir
+        ↑↓ ←→ navegar · F2 renomear · Del excluir · Alt+↑↓ ou arrastar: mover
       </div>
-    </aside>
+    </div>
   );
 }

@@ -10,6 +10,9 @@ import { ConfirmDialog, PromptDialog, Toasts } from '@/components/ui/Feedback';
 import { BulkEditDialog } from '@/components/bulk/BulkEditDialog';
 import { ReportDialog } from '@/components/report/ReportDialog';
 import { TemplatesDialog } from '@/components/templates/TemplatesDialog';
+import { MoveDialog } from '@/components/move/MoveDialog';
+import { ImportDialog } from '@/components/import/ImportDialog';
+import { RenameDialog } from '@/components/rename/RenameDialog';
 import { useActiveCollection } from '@/store/collectionStore';
 import { useBaselineStore } from '@/store/baselineStore';
 import { IconButton, cx } from '@/components/ui/primitives';
@@ -84,6 +87,9 @@ export function AppShell() {
       <BulkEditDialog />
       <ReportDialog />
       <TemplatesDialog />
+      <MoveDialog />
+      <ImportDialog />
+      <RenameDialog />
       <Toasts />
       <ConfirmDialog />
       <PromptDialog />

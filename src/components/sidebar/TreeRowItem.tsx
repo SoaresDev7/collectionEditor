@@ -16,6 +16,11 @@ export type TreeRowActions = {
   onDelete: (id: string) => void;
   onRenameStart: (id: string) => void;
   onRenameCommit: (id: string, name: string | null) => void;
+  onDragStart: (id: string) => void;
+  /** Retorna true se a linha aceita o item arrastado nesta posição. */
+  onDragOverRow: (row: TreeRow, offsetRatio: number) => boolean;
+  onDrop: () => void;
+  onDragEnd: () => void;
 };
 
 type Props = {
@@ -24,6 +29,8 @@ type Props = {
   renaming: boolean;
   top: number;
   actions: TreeRowActions;
+  /** Indicador de soltura sobre esta linha. */
+  drop?: 'before' | 'after' | 'inside';
 };
 
 const childCount = (row: TreeRow): number | null => {
@@ -56,7 +63,7 @@ function RenameInput({ initial, onDone }: { initial: string; onDone: (value: str
   );
 }
 
-export const TreeRowItem = memo(function TreeRowItem({ row, selected, renaming, top, actions }: Props) {
+export const TreeRowItem = memo(function TreeRowItem({ row, selected, renaming, top, actions, drop }: Props) {
   const { ref, depth, hasChildren, expanded, match } = row;
   const id = ref.node.id;
   const childKind = CHILD_KIND[ref.kind];
@@ -72,10 +79,31 @@ export const TreeRowItem = memo(function TreeRowItem({ row, selected, renaming, 
       data-id={id}
       onClick={() => actions.onSelect(id)}
       onDoubleClick={() => !isRoot && actions.onRenameStart(id)}
+      draggable={!isRoot && !renaming}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+        actions.onDragStart(id);
+      }}
+      onDragOver={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (actions.onDragOverRow(row, (e.clientY - rect.top) / rect.height)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        actions.onDrop();
+      }}
+      onDragEnd={actions.onDragEnd}
       style={{ top, height: ROW_HEIGHT, paddingLeft: 6 + depth * 14 }}
       className={cx(
         'group absolute right-0 left-0 flex cursor-pointer items-center gap-1 pr-1 text-sm select-none',
         selected ? 'bg-accent-soft text-fg' : 'hover:bg-panel-2',
+        drop === 'inside' && 'ring-2 ring-accent ring-inset',
+        drop === 'before' && 'shadow-[inset_0_2px_0_var(--accent)]',
+        drop === 'after' && 'shadow-[inset_0_-2px_0_var(--accent)]',
       )}
     >
       <button

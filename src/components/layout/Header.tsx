@@ -1,4 +1,5 @@
-import { Copy, Download, FileClock, FileText, Keyboard, Moon, PanelRight, PencilRuler, Plus, Sun, Trash2 } from 'lucide-react';
+import { Copy, Download, FileClock, FileText, Keyboard, Layers, Moon, PanelRight, PencilRuler, Plus, Sun, TextCursorInput, Trash2, Upload } from 'lucide-react';
+import { Menu } from '@/components/ui/Menu';
 import { useState } from 'react';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
@@ -47,11 +48,19 @@ export function Header() {
       <IconButton label="Excluir collection" className="hover:text-danger" onClick={actions.remove}>
         <Trash2 size={15} />
       </IconButton>
+      <Button size="sm" variant="ghost" icon={<Upload size={14} />} onClick={() => useDialogStore.getState().setImporting(true)} title="Importar collection do Postman (Ctrl+O)">
+        Importar
+      </Button>
 
       <div className="ml-auto flex flex-wrap items-center gap-1">
-        <Button size="sm" variant="ghost" icon={<PencilRuler size={14} />} onClick={() => useDialogStore.getState().openBulkEdit()} title="Editar body em massa">
-          <span className="hidden md:inline">Edição em massa</span>
-        </Button>
+        <Menu
+          label={<span className="hidden md:inline">Em massa</span>}
+          icon={<Layers size={14} />}
+          items={[
+            { label: 'Editar body', icon: <PencilRuler size={14} />, hint: 'Alt+M', onSelect: () => useDialogStore.getState().openBulkEdit() },
+            { label: 'Renomear IDs', icon: <TextCursorInput size={14} />, hint: 'Alt+I', onSelect: () => useDialogStore.getState().openRename() },
+          ]}
+        />
         <Button size="sm" variant="ghost" icon={<FileText size={14} />} onClick={() => useDialogStore.getState().setTemplates(true)} title="Templates de documentação">
           <span className="hidden md:inline">Templates</span>
         </Button>

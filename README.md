@@ -68,6 +68,10 @@ src/
 - Requisição: método, URL validada, body JSON (validação + formatar), headers, scripts, visualização com variáveis interpoladas
 - Aviso de variáveis não definidas (considera variáveis criadas por `pm.*.set(...)` em scripts e dinâmicas `{{$guid}}`)
 - Duplicar folder/cenário/ID/requisição; **Duplicar ID N vezes** com numeração automática por cenário; renumerar IDs do cenário
+- **Importar** collections do Postman (v2.0/v2.1), mapeando as pastas para a hierarquia padrão
+- **Mover itens**: arrastar e soltar na árvore, `Alt+↑/↓` ou o botão **Mover** (escolha do destino)
+- **Buscar usos** de variáveis, funções dos scripts ou texto livre, com navegação até a linha
+- **Renomear IDs em massa** (padrão TC, localizar/substituir com regex, prefixo/sufixo)
 - **Edição em massa do body**: seleciona IDs e aplica em um campo remover / editar valor / renomear / adicionar se não existir
 - **Relatório de alterações** em Markdown e mensagem de commit
 - **Templates de documentação** por nível (base pronta, aguardando os modelos do time)
@@ -83,6 +87,10 @@ src/
 | Alt+N | Adicionar filho ao item selecionado |
 | Ctrl+D | Duplicar item selecionado |
 | Ctrl+E | Exportar collection |
+| Ctrl+Shift+F | Buscar usos |
+| Ctrl+O | Importar collection |
+| Alt+I | Renomear IDs em massa |
+| Alt+↑ / Alt+↓ | Mover o item selecionado na árvore |
 | Alt+M | Edição em massa do body |
 | Alt+R | Relatório de alterações |
 | Ctrl+B | Painel de variáveis |
@@ -93,11 +101,51 @@ src/
 
 `TC-<código>-<NNN>`: o código (até 3 letras, A–Z) é definido em cada **cenário** e a numeração reinicia em `001` em cada cenário.
 
-- Novo ID / duplicar / duplicar N vezes usam o próximo número livre do cenário.
+- Novo ID / duplicar / duplicar N vezes usam o próximo número livre do cenário, e os IDs do cenário são reordenados pelo número automaticamente.
+- Ao mover um ID para outro cenário, ele assume o código e o próximo número do destino.
 - Trocar o código do cenário renomeia automaticamente os IDs que seguiam o código anterior.
 - O botão **Renumerar** reescreve os IDs do cenário em sequência na ordem atual.
 - O botão de varinha sugere um código pelas iniciais do nome do cenário ("Login com credenciais válidas" → `LCV`).
 - Se dois cenários usarem o mesmo código, o editor avisa (não bloqueia).
+
+## Mover itens
+
+- **Arrastar e soltar** na árvore: solte sobre um item do mesmo nível (antes/depois) ou sobre um pai válido (para dentro). Só destinos compatíveis com a hierarquia aceitam o item.
+- **Teclado**: `Alt+↑` / `Alt+↓` sobe/desce o item selecionado entre os irmãos.
+- **Botão Mover** no editor: lista os destinos possíveis com busca.
+- Nomes repetidos no destino recebem sufixo "(cópia)"; IDs movidos para outro cenário são renomeados para o padrão do destino.
+
+## Buscar usos
+
+Aba **Buscar usos** na barra lateral (`Ctrl+Shift+F`), com três modos:
+
+| Modo | Encontra |
+| --- | --- |
+| Texto | Qualquer trecho em nomes, descrições, URLs, headers, bodies, variáveis e scripts |
+| Variável | `{{var}}` em URL/headers/body/scripts, `pm.*.get/set/unset/has('var')` (classificado como leitura/escrita/remoção) e declarações nas tabelas de variáveis |
+| Função | Definições (`function f`, `const f = () =>`…) e chamadas nos scripts de pré/pós-request |
+
+Clicar num resultado abre o item, a aba correspondente e posiciona o editor na linha. No painel de variáveis, o ícone de lupa abre a busca de usos daquela variável.
+
+## Importar collection do Postman
+
+Botão **Importar** (`Ctrl+O`): arraste o arquivo ou cole o JSON. A importação cria uma nova collection:
+
+- pasta de 1º nível → Folder; 2º nível → Cenário (código sugerido pelo nome ou tirado de IDs `TC-XXX-NNN`); 3º nível → ID; pastas mais profundas são achatadas dentro do ID (scripts delas vão para as requisições);
+- requisições soltas num cenário viram um ID cada; soltas acima disso vão para um contêiner "Geral";
+- scripts, variáveis da collection e o bloco de variáveis exportado por esta ferramenta são restaurados;
+- opção **Reorganizar IDs no padrão** (nome original vai para a descrição);
+- bodies `urlencoded`/`form-data`/GraphQL são convertidos para JSON e autenticação Bearer vira header `Authorization`; o resto gera avisos na pré-visualização.
+
+## Renomear IDs em massa
+
+Menu **Em massa → Renomear IDs** (`Alt+I`), com seleção de IDs igual à da edição de body:
+
+- **Padrão TC-<código>-NNN**: renumera a partir de um número, por cenário, na ordem atual;
+- **Localizar e substituir**: com expressão regular (`$1`…) e diferenciação de maiúsculas;
+- **Prefixo / sufixo**.
+
+A pré-visualização mostra antes → depois e bloqueia nomes repetidos no cenário. Depois de aplicar, os IDs são reordenados pelo número.
 
 ## Edição em massa do body
 
@@ -150,7 +198,6 @@ O Postman só aplica variáveis no nível da collection; por isso as variáveis 
 
 ## Próximos passos
 
-- **V2:** importação de collection Postman (mapeando a profundidade das pastas para a hierarquia e reconhecendo o bloco de variáveis gerado), arrastar e soltar para reordenar
 - **Templates:** modelos oficiais do time, aplicação automática ao criar itens, aplicação em lote
 - **V3:** undo/redo, validações avançadas
 - **V4:** sincronização em nuvem e versionamento

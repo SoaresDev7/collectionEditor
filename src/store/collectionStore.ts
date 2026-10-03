@@ -1,11 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { AnyNode, Collection, NodeRef } from '@/types/collection';
+import { CHILD_KIND, type AnyNode, type Collection, type NodeRef, type Scenario } from '@/types/collection';
 import { buildMockCollection } from '@/data/mockCollection';
 import { createCollection, createFolder, createRequest, createScenario, createTestId } from '@/lib/factories';
 import { cloneCollection, cloneFolder, cloneRequest, cloneScenario, cloneTestId } from '@/lib/clone';
-import { formatTestIdName, maxTestIdNumber, nextTestIdName, parseTestIdNumber, sanitizeIdCode, suggestIdCode, uniqueName } from '@/lib/nomenclature';
+import {
+  formatTestIdName,
+  maxTestIdNumber,
+  nextTestIdName,
+  parseTestIdNumber,
+  sanitizeIdCode,
+  sortTestIds,
+  suggestIdCode,
+  uniqueName,
+} from '@/lib/nomenclature';
 import { childArray, findPath, nearest } from '@/lib/tree';
 import { nowIso } from '@/lib/ids';
 
@@ -33,6 +42,20 @@ type CollectionState = {
   setScenarioIdCode: (scenarioId: string, code: string) => void;
   /** Substitui o body de várias requisições numa única alteração. */
   applyBodies: (bodies: { requestId: string; body: string }[]) => void;
+  /** Renomeia vários nós numa única alteração (IDs renomeados são reordenados pelo número). */
+  renameNodes: (renames: { id: string; name: string }[]) => void;
+  /**
+   * Move um nó para outro pai (do nível adequado) na posição `index`
+   * (fim, se omitido). Retorna mensagem de erro ou o resultado.
+   */
+  moveNode: (id: string, targetParentId: string, index?: number) => MoveResult;
+};
+
+export type MoveResult = { ok: true; renamedTo?: string } | { ok: false; error: string };
+
+/** Reordena os IDs do cenário pelo número após inclusões. */
+const resort = (scenario: Scenario) => {
+  scenario.testIds = sortTestIds(scenario.idCode, scenario.testIds);
 };
 
 const siblingNames = (parent: NodeRef) => (childArray(parent) ?? []).map((n) => n.name);
@@ -128,6 +151,7 @@ export const useCollectionStore = create<CollectionState>()(
               case 'scenario': {
                 const t = createTestId({ name: nextTestIdName(parent.node) });
                 parent.node.testIds.push(t);
+                resort(parent.node);
                 return t.id;
               }
               case 'testId': {
@@ -174,9 +198,11 @@ export const useCollectionStore = create<CollectionState>()(
               }
               case 'testId': {
                 const scenario = nearest(path, 'scenario')!.node;
-                copy = cloneTestId(ref.node);
-                copy.name = nextTestIdName(scenario);
-                break;
+                const t = cloneTestId(ref.node);
+                t.name = nextTestIdName(scenario);
+                scenario.testIds.push(t);
+                resort(scenario);
+                return t.id;
               }
               case 'request': {
                 copy = cloneRequest(ref.node);
@@ -205,6 +231,7 @@ export const useCollectionStore = create<CollectionState>()(
               return t;
             });
             scenario.testIds.splice(index + 1, 0, ...copies);
+            resort(scenario);
             return copies.map((t) => t.id);
           }) ?? [],
 
@@ -229,6 +256,57 @@ export const useCollectionStore = create<CollectionState>()(
               if (n !== null) t.name = formatTestIdName(next, n);
             }
           }),
+
+        renameNodes: (renames) =>
+          mutateActive((c) => {
+            const touched = new Set<Scenario>();
+            for (const { id, name } of renames) {
+              const path = findPath(c, id);
+              const ref = path?.at(-1);
+              if (!path || !ref) continue;
+              ref.node.name = name;
+              if (ref.kind === 'testId') touched.add(nearest(path, 'scenario')!.node);
+            }
+            touched.forEach(resort);
+          }),
+
+        moveNode: (id, targetParentId, index) =>
+          mutateActive((c): MoveResult => {
+            const path = findPath(c, id);
+            const targetPath = findPath(c, targetParentId);
+            if (!path || path.length < 2 || !targetPath) return { ok: false, error: 'Item não encontrado.' };
+            const ref = path[path.length - 1];
+            const source = path[path.length - 2];
+            const target = targetPath[targetPath.length - 1];
+            if (CHILD_KIND[target.kind] !== ref.kind)
+              return { ok: false, error: `Não é possível colocar este item dentro de ${target.node.name}.` };
+
+            const from = childArray(source)!;
+            const to = childArray(target)!;
+            const fromIndex = from.findIndex((n) => n.id === id);
+            let insertAt = index ?? to.length;
+            if (source.node.id === target.node.id && fromIndex < insertAt) insertAt--;
+            if (source.node.id === target.node.id && fromIndex === insertAt) return { ok: true };
+
+            const [node] = from.splice(fromIndex, 1);
+            let renamedTo: string | undefined;
+            if (source.node.id !== target.node.id) {
+              if (ref.kind === 'testId' && target.kind === 'scenario') {
+                // Em outro cenário o ID assume o código e o próximo número do destino.
+                const sourceScenario = source.node as Scenario;
+                if (parseTestIdNumber(sourceScenario.idCode, node.name) !== null || parseTestIdNumber(target.node.idCode, node.name) !== null) {
+                  node.name = nextTestIdName(target.node);
+                  renamedTo = node.name;
+                }
+              } else {
+                const unique = uniqueName(node.name, to.map((n) => n.name));
+                if (unique !== node.name) renamedTo = node.name = unique;
+              }
+            }
+            to.splice(Math.max(0, Math.min(insertAt, to.length)), 0, node);
+            if (renamedTo && target.kind === 'scenario') resort(target.node);
+            return { ok: true, renamedTo };
+          }) ?? { ok: false, error: 'Nenhuma collection ativa.' },
 
         applyBodies: (bodies) =>
           mutateActive((c) => {
