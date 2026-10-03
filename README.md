@@ -28,11 +28,10 @@ Ela acelera o trabalho repetitivo de QA (duplicar casos, renumerar IDs, alterar 
 4. [Atalhos de teclado](#4-atalhos-de-teclado)
 5. [Regras de comportamento](#5-regras-de-comportamento)
 6. [Armazenamento, desempenho e limites](#6-armazenamento-desempenho-e-limites)
-7. [Disponibilizar na empresa](#7-disponibilizar-na-empresa)
-8. [Trabalho em equipe](#8-trabalho-em-equipe)
-9. [Solução de problemas](#9-solução-de-problemas)
-10. [Desenvolvimento](#10-desenvolvimento)
-11. [Limitações conhecidas e próximos passos](#11-limitações-conhecidas-e-próximos-passos)
+7. [Trabalho em equipe](#7-trabalho-em-equipe)
+8. [Solução de problemas](#8-solução-de-problemas)
+9. [Desenvolvimento](#9-desenvolvimento)
+10. [Limitações conhecidas e próximos passos](#10-limitações-conhecidas-e-próximos-passos)
 
 ---
 
@@ -337,7 +336,7 @@ No Mac, use `Cmd` no lugar de `Ctrl`. Dentro do editor de código valem os atalh
 
 ---
 
-## 8. Trabalho em equipe
+## 7. Trabalho em equipe
 
 Como os dados são locais, o compartilhamento é pelos arquivos:
 
@@ -351,7 +350,7 @@ Os colegas importam o arquivo atualizado. Como a importação e a exportação s
 
 ---
 
-## 9. Solução de problemas
+## 8. Solução de problemas
 
 | Situação | O que fazer |
 | --- | --- |
@@ -365,7 +364,7 @@ Os colegas importam o arquivo atualizado. Como a importação e a exportação s
 
 ---
 
-## 10. Desenvolvimento
+## 9. Desenvolvimento
 
 ### Stack
 
@@ -426,7 +425,7 @@ Definido em `src/types/collection.ts`. Pontos importantes:
 
 ---
 
-## 11. Limitações conhecidas e próximos passos
+## 10. Limitações conhecidas e próximos passos
 
 - **Sem desfazer/refazer** (undo/redo) fora do editor de código. Antes de ações em massa, confira a pré-visualização; para voltar atrás, reimporte o último JSON exportado.
 - Os dados são **por navegador**; não há sincronização entre máquinas.
