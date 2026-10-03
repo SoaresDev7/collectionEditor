@@ -85,3 +85,23 @@ export function sortTestIds<T extends { name: string }>(code: string, testIds: T
   let k = 0;
   return testIds.map((t, i) => (numbered[i] === null ? t : sorted[k++]));
 }
+
+/**
+ * Renumera os IDs no padrão conforme a posição: os números já usados são
+ * redistribuídos em ordem crescente seguindo a ordem atual da lista (lacunas
+ * são mantidas). Usado ao mover um ID: a posição passa a definir o número.
+ * Retorna as renomeações feitas.
+ */
+export function renumberByPosition<T extends { name: string }>(code: string, testIds: T[]): { from: string; to: string }[] {
+  const numbered = testIds.filter((t) => parseTestIdNumber(code, t.name) !== null);
+  const numbers = numbered.map((t) => parseTestIdNumber(code, t.name)!).sort((a, b) => a - b);
+  const changes: { from: string; to: string }[] = [];
+  numbered.forEach((t, i) => {
+    const name = formatTestIdName(code, numbers[i]);
+    if (name !== t.name) {
+      changes.push({ from: t.name, to: name });
+      t.name = name;
+    }
+  });
+  return changes;
+}

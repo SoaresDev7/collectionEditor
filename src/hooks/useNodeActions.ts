@@ -76,7 +76,8 @@ export function useNodeActions() {
     }
     ui.getState().setExpanded([parentId], true);
     ui.getState().select(id);
-    if (result.renamedTo) notify('info', `Item movido e renomeado para ${result.renamedTo}.`);
+    if (result.renumbered?.length) notify('info', `IDs renumerados pela nova posição: ${result.renumbered.map((r) => `${r.from} → ${r.to}`).join(', ')}.`);
+    else if (result.renamedTo) notify('info', `Item movido e renomeado para ${result.renamedTo}.`);
     return true;
   }, [store, ui]);
 

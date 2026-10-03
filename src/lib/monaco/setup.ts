@@ -4,6 +4,7 @@
  */
 import * as monaco from './core';
 import { getCompletionVariables } from './completionVariables';
+import { registerScopeProviders } from './scopeProviders';
 import { loader } from '@monaco-editor/react';
 import EditorWorker from 'monaco-esm/editor/editor.worker.js?worker';
 import JsonWorker from 'monaco-esm/language/json/json.worker.js?worker';
@@ -89,5 +90,7 @@ const variableCompletion: monaco.languages.CompletionItemProvider = {
 };
 monaco.languages.registerCompletionItemProvider('json', variableCompletion);
 monaco.languages.registerCompletionItemProvider('javascript', variableCompletion);
+
+registerScopeProviders(monaco);
 
 loader.config({ monaco });

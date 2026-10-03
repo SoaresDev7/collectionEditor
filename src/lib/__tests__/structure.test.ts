@@ -15,11 +15,25 @@ describe('estrutura', () => {
     expect(active().folders[0].scenarios[0].testIds.map((t) => t.name)).toEqual(['TC-LCV-001', 'TC-LCV-002', 'TC-LCV-003', 'TC-LCV-004']);
   });
 
+  it('mover ID dentro do cenário renumera pela posição', () => {
+    const first = active().folders[0].scenarios[0].testIds[0];
+    useCollectionStore.getState().duplicateTestIdN(first.id, 1); // 001, 002, 003
+    const s = () => active().folders[0].scenarios[0];
+    const third = s().testIds[2];
+    const r = useCollectionStore.getState().moveNode(third.id, s().id, 1);
+    expect(s().testIds.map((t) => t.name)).toEqual(['TC-LCV-001', 'TC-LCV-002', 'TC-LCV-003']);
+    expect(s().testIds[1].id).toBe(third.id);
+    expect(r).toMatchObject({ ok: true, renamedTo: 'TC-LCV-002', renumbered: [{ from: 'TC-LCV-003', to: 'TC-LCV-002' }, { from: 'TC-LCV-002', to: 'TC-LCV-003' }] });
+    // Duplicar depois não desfaz a ordem escolhida
+    useCollectionStore.getState().duplicateTestIdN(s().testIds[0].id, 1);
+    expect(s().testIds[1].id).toBe(third.id);
+  });
+
   it('mover ID para outro cenário assume o código do destino', () => {
     const id = active().folders[0].scenarios[0].testIds[1].id;
     const target = active().folders[0].scenarios[1];
     const r = useCollectionStore.getState().moveNode(id, target.id);
-    expect(r).toEqual({ ok: true, renamedTo: 'TC-LCI-002' });
+    expect(r).toMatchObject({ ok: true, renamedTo: 'TC-LCI-002' });
     expect(active().folders[0].scenarios[1].testIds.map((t) => t.name)).toEqual(['TC-LCI-001', 'TC-LCI-002']);
   });
 

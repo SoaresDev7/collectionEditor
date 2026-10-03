@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { AlertTriangle, Braces, CheckCircle2, XCircle } from 'lucide-react';
 import { HTTP_METHODS, type Collection, type HttpMethod, type NodePath, type Request, type TestId } from '@/types/collection';
 import { PreservedNotice, preservedFields } from './shared/PreservedNotice';
+import { ExecutionChain } from './shared/ExecutionChain';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
 import { notify } from '@/store/feedbackStore';
@@ -198,6 +199,7 @@ export function RequestEditor({ path }: { path: NodePath }) {
             { id: 'pre', label: 'Pré-request', badge: scriptBadge(request.preRequestScripts) },
             { id: 'post', label: 'Pós-request / Testes', badge: scriptBadge(request.postRequestScripts) },
             { id: 'preview', label: 'Visualizar' },
+            { id: 'execution', label: 'Ordem de execução' },
           ]}
         />
 
@@ -253,6 +255,7 @@ export function RequestEditor({ path }: { path: NodePath }) {
           />
         )}
         {tab === 'preview' && <Preview request={request} values={values} />}
+        {tab === 'execution' && <ExecutionChain collection={collection} requestId={request.id} />}
       </div>
     </div>
   );

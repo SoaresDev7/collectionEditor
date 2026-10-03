@@ -17,7 +17,13 @@ export function ScriptEditor({ nodeId, phase, value, onChange, help }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2 text-xs text-muted">
-        <span>{help}</span>
+        <span>
+          {help}{' '}
+          <span title="Os rótulos ao lado de variáveis e funções mostram de onde elas vêm (passe o mouse para detalhes). Sublinhado amarelo = não vai funcionar neste ponto. Digite 'shared' para criar uma função compartilhada.">
+            Rótulos cinza = origem de cada variável/função · digite <code className="font-mono">shared</code> para função
+            compartilhada.
+          </span>
+        </span>
         {result.ok ? (
           <span className="flex items-center gap-1 text-ok">
             <CheckCircle2 size={13} /> Sintaxe OK

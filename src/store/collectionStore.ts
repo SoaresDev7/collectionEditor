@@ -10,6 +10,7 @@ import {
   maxTestIdNumber,
   nextTestIdName,
   parseTestIdNumber,
+  renumberByPosition,
   sanitizeIdCode,
   sortTestIds,
   suggestIdCode,
@@ -52,7 +53,9 @@ type CollectionState = {
   moveNode: (id: string, targetParentId: string, index?: number) => MoveResult;
 };
 
-export type MoveResult = { ok: true; renamedTo?: string } | { ok: false; error: string };
+export type MoveResult =
+  | { ok: true; renamedTo?: string; renumbered?: { from: string; to: string }[] }
+  | { ok: false; error: string };
 
 /** Reordena os IDs do cenário pelo número após inclusões. */
 const resort = (scenario: Scenario) => {
@@ -299,6 +302,7 @@ export const useCollectionStore = create<CollectionState>()(
             if (source.node.id === target.node.id && fromIndex < insertAt) insertAt--;
             if (source.node.id === target.node.id && fromIndex === insertAt) return { ok: true };
 
+            const originalName = ref.node.name;
             const [node] = from.splice(fromIndex, 1);
             let renamedTo: string | undefined;
             if (source.node.id !== target.node.id) {
@@ -315,8 +319,13 @@ export const useCollectionStore = create<CollectionState>()(
               }
             }
             to.splice(Math.max(0, Math.min(insertAt, to.length)), 0, node);
-            if (renamedTo && target.kind === 'scenario') resort(target.node);
-            return { ok: true, renamedTo };
+            // ID no padrão TC: a posição no cenário define o número (ex.: mover o 003 para cima do 002 troca os dois).
+            let renumbered: { from: string; to: string }[] | undefined;
+            if (ref.kind === 'testId' && target.kind === 'scenario' && parseTestIdNumber(target.node.idCode, node.name) !== null) {
+              renumbered = renumberByPosition(target.node.idCode, target.node.testIds);
+              renamedTo = node.name !== originalName ? node.name : undefined;
+            }
+            return { ok: true, renamedTo, renumbered };
           }) ?? { ok: false, error: 'Nenhuma collection ativa.' },
 
         applyBodies: (bodies) =>

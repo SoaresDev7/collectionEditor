@@ -119,8 +119,41 @@ Renomear apenas a requisição dentro dele não muda nada.
 Cada nível tem **Pré-request** e **Pós-request** (testes). No Postman, os scripts rodam de fora para dentro: collection → folder → cenário → ID → requisição. O editor oferece:
 
 - destaque de sintaxe, minimapa, busca (`Ctrl+F`) e formatação (`Shift+Alt+F`);
-- autocomplete da API `pm` (`pm.test`, `pm.expect`, `pm.response`, `pm.variables`…) e de `{{variáveis}}`;
-- validação de sintaxe em tempo real (indicador verde/vermelho na aba).
+- autocomplete da API `pm` (`pm.test`, `pm.expect`, `pm.response`, `pm.variables`…), de `{{variáveis}}` e dos nomes dentro de `pm.*.get('…')` (com a origem de cada um);
+- validação de sintaxe em tempo real (indicador verde/vermelho na aba);
+- **análise de escopo** (abaixo).
+
+#### Escopo de variáveis e funções nos scripts
+
+Um erro comum no Postman é usar, dentro de um script ou de uma função, algo que foi definido em outro escopo. O editor mostra, ao lado de cada uso, **de onde ele vem** (rótulo cinza) e sublinha em amarelo o que **não vai funcionar** naquele ponto. Passe o mouse para ver a explicação completa e a correção sugerida.
+
+| Rótulo | Significado |
+| --- | --- |
+| `Global` / `Folder` / `Cenário` / `ID` | Variável declarada nesse nível e visível aqui |
+| `script: <item>` / `neste script` | Variável gravada por um script que roda antes (ou numa linha anterior) |
+| `→ local` / `→ collection` … | Este `pm.*.set` grava nesse escopo |
+| `externa (environment)` | Não existe na collection; deve vir de um environment/globals/arquivo de dados |
+| `⇠ Collection pré-request` | Função/objeto compartilhado definido num script que roda antes |
+| `compartilhada` / `só neste script` | Escopo de uma função declarada neste script |
+| `⚠ Folder` (sublinhado) | O acessor não encontra a variável: ex. `pm.collectionVariables.get('x')` para uma variável de Folder/Cenário/ID, que é local — use `pm.variables.get('x')` |
+| `⚠ fora do alcance` | A variável existe, mas em outro ramo da árvore ou num script que não roda antes |
+| `⚠ não definida` | Não existe em lugar nenhum da collection |
+| `⚠ local de outro script` | Função/variável declarada com `function`/`const`/`let`/`var` em outro script. No Postman cada script roda isolado, então ela não existe aqui |
+| `⚠ roda depois` | É compartilhada, mas o script que a define roda depois deste |
+
+**Como compartilhar funções entre scripts:** defina-as sem `function`/`const`/`let` num nível acima (ex.: pré-request da Collection) e use-as nos níveis abaixo. Digite `shared` (função) ou `shared-utils` (objeto de utilidades) no editor para inserir o modelo:
+
+```js
+// Pré-request da Collection
+utils = Object.assign(typeof utils === 'object' ? utils : {}, {
+  gerarCpf() { /* ... */ },
+});
+
+// Pré-request de qualquer requisição
+const cpf = utils.gerarCpf();
+```
+
+A aba **Ordem de execução** da requisição lista todos os scripts que rodam para ela, na ordem do Postman, com as funções compartilhadas (ƒ), as locais, as variáveis gravadas (✎) e lidas (◉) e a quantidade de avisos de escopo de cada um. Clique num passo para abrir o script.
 
 ---
 
@@ -166,7 +199,7 @@ Cada nível tem **Pré-request** e **Pós-request** (testes). No Postman, os scr
 - **Arrastar e soltar** na árvore: sobre um item do mesmo nível (antes/depois) ou sobre um pai válido (para dentro). Só destinos compatíveis aceitam o item.
 - **`Alt+↑` / `Alt+↓`** sobe/desce o item entre os irmãos.
 - **Mover** (no editor): lista de destinos com busca.
-- Um ID no padrão TC movido para outro cenário assume o código e o próximo número do destino.
+- **IDs no padrão TC são renumerados pela posição**: arrastar o `TC-XXX-003` para cima do `TC-XXX-002` faz ele virar `002` e o antigo `002` virar `003`. Em outro cenário, o ID assume o código do destino e o número da posição em que foi solto. Um aviso lista as renomeações, que também aparecem no relatório. IDs fora do padrão só mudam de posição.
 
 ### 3.7 Buscar usos
 
@@ -279,7 +312,7 @@ No Mac, use `Cmd` no lugar de `Ctrl`. Dentro do editor de código valem os atalh
 - **Nomes duplicados** no mesmo nível são bloqueados ao renomear.
 - **Exclusões** pedem confirmação e informam quantos itens filhos serão apagados.
 - **Validação em tempo real:** URL, JSON do body, sintaxe dos scripts, nomes de variáveis, chaves duplicadas e variáveis não definidas.
-- A **reordenação automática** só mexe em IDs no padrão TC, e só entre as posições que eles já ocupam.
+- A **reordenação automática** só mexe em IDs no padrão TC, e só entre as posições que eles já ocupam. Ao **mover** um ID, a posição escolhida define o número (os demais são renumerados).
 
 **Relatório**
 - Compara com a base por identidade interna dos itens: renomear ou mover aparece como modificação, não como exclusão + inclusão.
@@ -352,6 +385,7 @@ src/
 │   ├── validation.ts          # URL, JSON, JavaScript, nomes
 │   ├── synthetic.ts           # Regras dos contêineres sintéticos
 │   ├── search.ts              # Busca de usos
+│   ├── scripts/               # Análise de escopo dos scripts e ordem de execução
 │   ├── bulkEdit.ts            # Edição em massa do body
 │   ├── bulkRename.ts          # Renomeação em massa
 │   ├── templates.ts           # Placeholders e renderização de templates
@@ -397,7 +431,7 @@ Definido em `src/types/collection.ts`. Pontos importantes:
 - **Sem desfazer/refazer** (undo/redo) fora do editor de código. Antes de ações em massa, confira a pré-visualização; para voltar atrás, reimporte o último JSON exportado.
 - Os dados são **por navegador**; não há sincronização entre máquinas.
 - Autenticação, bodies não-*raw* e exemplos de resposta são preservados, mas **não editáveis**.
-- A validação de scripts é de sintaxe (não executa o código).
+- A validação de scripts é de sintaxe e a análise de escopo é heurística (não executa o código): cobre declarações no topo dos scripts, `pm.*.get/set` e `{{var}}`; construções dinâmicas (nomes montados em tempo de execução) não são analisadas.
 - Apenas o formato Postman **v2.0/v2.1**.
 
 Próximos passos: templates oficiais do time (e aplicação automática), desfazer/refazer, edição de autenticação, sincronização e versionamento em nuvem.
