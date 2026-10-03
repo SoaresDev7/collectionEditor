@@ -91,6 +91,7 @@ src/
 ## O que já funciona
 
 - Árvore expansível/colapsável, virtualizada (1000+ itens), com busca, renomear (duplo clique/F2) e navegação por teclado
+- Barra lateral redimensionável (arraste a borda direita; setas do teclado com a borda focada; duplo clique volta ao padrão). A largura fica salva, e o nome completo aparece ao passar o mouse sobre um item
 - Editores por nível: nome, descrição, prefixo de nomenclatura (Folder), variáveis, pré/pós-request
 - Requisição: método, URL validada, body JSON (validação + formatar), headers, scripts, visualização com variáveis interpoladas
 - Aviso de variáveis não definidas (considera variáveis criadas por `pm.*.set(...)` em scripts e dinâmicas `{{$guid}}`)

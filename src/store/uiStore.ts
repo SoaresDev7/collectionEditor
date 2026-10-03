@@ -18,6 +18,8 @@ type UiState = {
   treeFilter: string;
   showVariablesPanel: boolean;
   sidebarScrollTop: number;
+  /** Largura da barra lateral em px. */
+  sidebarWidth: number;
   sidebarTab: SidebarTab;
   search: { mode: SearchModeUi; query: string; caseSensitive: boolean };
   reveal: RevealRequest | null;
@@ -30,6 +32,7 @@ type UiState = {
   setTreeFilter: (filter: string) => void;
   toggleVariablesPanel: () => void;
   setSidebarScrollTop: (top: number) => void;
+  setSidebarWidth: (width: number) => void;
   setSidebarTab: (tab: SidebarTab) => void;
   setSearch: (patch: Partial<UiState['search']>) => void;
   /** Abre a aba de busca já com uma consulta (ex.: "ver usos" de uma variável). */
@@ -50,6 +53,7 @@ export const useUiStore = create<UiState>()(
       treeFilter: '',
       showVariablesPanel: true,
       sidebarScrollTop: 0,
+      sidebarWidth: 288,
       sidebarTab: 'tree',
       search: { mode: 'text', query: '', caseSensitive: false },
       reveal: null,
@@ -67,6 +71,7 @@ export const useUiStore = create<UiState>()(
       setTreeFilter: (treeFilter) => set({ treeFilter }),
       toggleVariablesPanel: () => set((s) => ({ showVariablesPanel: !s.showVariablesPanel })),
       setSidebarScrollTop: (sidebarScrollTop) => set({ sidebarScrollTop }),
+      setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
       setSidebarTab: (sidebarTab) => set({ sidebarTab }),
       setSearch: (patch) => set((s) => ({ search: { ...s.search, ...patch } })),
       openSearch: (mode, query) => set((s) => ({ sidebarTab: 'search', search: { ...s.search, mode, query } })),

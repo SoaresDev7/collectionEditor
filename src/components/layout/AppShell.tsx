@@ -19,6 +19,7 @@ import { useBaselineStore } from '@/store/baselineStore';
 import { IconButton, cx } from '@/components/ui/primitives';
 import { Header } from './Header';
 import { Breadcrumb } from './Breadcrumb';
+import { ResizeHandle } from './ResizeHandle';
 
 export function AppShell() {
   const hydrated = useHydrated();
@@ -31,6 +32,8 @@ function Shell() {
   const showVariables = useUiStore((s) => s.showVariablesPanel);
   const theme = useUiStore((s) => s.theme);
   const selectedId = useUiStore((s) => s.selectedId);
+  const sidebarWidth = useUiStore((s) => s.sidebarWidth);
+  const setSidebarWidth = useUiStore((s) => s.setSidebarWidth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -58,12 +61,14 @@ function Shell() {
       <Header />
       <div className="relative flex min-h-0 flex-1">
         <div
+          style={{ width: sidebarWidth }}
           className={cx(
-            'absolute inset-y-0 left-0 z-20 w-72 shrink-0 transition-transform lg:static lg:translate-x-0',
+            'absolute inset-y-0 left-0 z-20 max-w-[85vw] shrink-0 transition-transform lg:relative lg:translate-x-0',
             sidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full',
           )}
         >
           <Sidebar />
+          <ResizeHandle width={sidebarWidth} onChange={setSidebarWidth} />
         </div>
         {sidebarOpen && <div className="absolute inset-0 z-10 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
