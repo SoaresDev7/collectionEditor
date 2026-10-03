@@ -8,6 +8,10 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { '@': path.resolve(import.meta.dirname, 'src') },
+    alias: {
+      '@': path.resolve(import.meta.dirname, 'src'),
+      // Módulos ESM internos do Monaco (usados pelo núcleo enxuto em src/lib/monaco/core.js).
+      'monaco-esm': path.resolve(import.meta.dirname, 'node_modules/monaco-editor/esm/vs'),
+    },
   },
 });

@@ -1,5 +1,4 @@
 import {
-  CHILD_KIND,
   type AnyNode,
   type Collection,
   type NodeKind,
@@ -56,18 +55,11 @@ export function findPath(collection: Collection, id: string): NodePath | null {
   return visit(root) ? [...stack] : null;
 }
 
-export function findNode(collection: Collection, id: string): NodeRef | null {
-  const path = findPath(collection, id);
-  return path ? path[path.length - 1] : null;
-}
-
 /** Percorre todos os nós em pré-ordem. */
 export function walk(ref: NodeRef, fn: (ref: NodeRef, depth: number) => void, depth = 0): void {
   fn(ref, depth);
   for (const child of childrenOf(ref)) walk(child, fn, depth + 1);
 }
-
-export const childKindOf = (kind: NodeKind): NodeKind | null => CHILD_KIND[kind];
 
 /** Ancestral mais próximo de um tipo específico dentro de um caminho. */
 export function nearest<K extends NodeKind>(path: NodePath, kind: K): Extract<NodeRef, { kind: K }> | undefined {

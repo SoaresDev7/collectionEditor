@@ -1,4 +1,5 @@
-import { useMemo, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useState, type DragEvent } from 'react';
+import { storageEstimate } from '@/lib/storage';
 import { AlertTriangle, FileJson, Info, ShieldCheck, Upload } from 'lucide-react';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useDialogStore } from '@/store/dialogStore';
@@ -22,6 +23,10 @@ function ImportContent() {
   const text = fileText || pasted;
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null);
+  useEffect(() => {
+    void storageEstimate().then(setStorage);
+  }, []);
 
   const result = useMemo(() => {
     if (!text.trim()) return null;
@@ -61,6 +66,11 @@ function ImportContent() {
       onClose={close}
       footer={
         <>
+          {storage && (
+            <span className="mr-auto text-xs text-muted">
+              Armazenamento do navegador: {(storage.usage / 1e6).toFixed(0)} MB usados de {(storage.quota / 1e6).toFixed(0)} MB
+            </span>
+          )}
           <Button onClick={close}>Cancelar</Button>
           <Button variant="primary" disabled={!result?.ok} onClick={doImport} icon={<Upload size={14} />}>
             Importar

@@ -2,11 +2,12 @@
  * Monaco empacotado localmente (sem CDN) com workers do Vite, tipagem básica
  * da API `pm` do Postman e autocomplete de {{variáveis}}.
  */
-import * as monaco from 'monaco-editor';
+import * as monaco from './core';
+import { getCompletionVariables } from './completionVariables';
 import { loader } from '@monaco-editor/react';
-import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
-import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
-import TsWorker from 'monaco-editor/language/typescript/ts.worker?worker';
+import EditorWorker from 'monaco-esm/editor/editor.worker.js?worker';
+import JsonWorker from 'monaco-esm/language/json/json.worker.js?worker';
+import TsWorker from 'monaco-esm/language/typescript/ts.worker.js?worker';
 
 self.MonacoEnvironment = {
   getWorker(_id: string, label: string) {
@@ -66,12 +67,6 @@ monaco.typescript.javascriptDefaults.setCompilerOptions({
 monaco.typescript.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
 monaco.typescript.javascriptDefaults.addExtraLib(PM_TYPES, 'ts:postman/pm.d.ts');
 
-/** Variáveis disponíveis no contexto atual, atualizadas pelo editor ativo. */
-let variableNames: string[] = [];
-export const setCompletionVariables = (names: string[]) => {
-  variableNames = names;
-};
-
 const variableCompletion: monaco.languages.CompletionItemProvider = {
   triggerCharacters: ['{'],
   provideCompletionItems(model, position) {
@@ -82,7 +77,7 @@ const variableCompletion: monaco.languages.CompletionItemProvider = {
     const after = model.getLineContent(position.lineNumber).slice(position.column - 1);
     const close = after.startsWith('}}') ? '' : '}}';
     return {
-      suggestions: [...variableNames, '$guid', '$timestamp', '$randomInt', '$randomEmail'].map((name) => ({
+      suggestions: [...getCompletionVariables(), '$guid', '$timestamp', '$randomInt', '$randomEmail'].map((name) => ({
         label: `{{${name}}}`,
         filterText: name,
         kind: monaco.languages.CompletionItemKind.Variable,

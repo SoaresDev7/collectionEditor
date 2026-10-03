@@ -7,7 +7,7 @@ import { useUiStore } from '@/store/uiStore';
 import { notify } from '@/store/feedbackStore';
 import { formatJson, validateJson, validateUrl } from '@/lib/validation';
 import { interpolate, resolveVariables, scriptDefinedVariables, undefinedVariables, variableMap } from '@/lib/variables';
-import { setCompletionVariables } from '@/lib/monaco';
+import { setCompletionVariables } from '@/lib/monaco/completionVariables';
 import { Badge, Button, Tabs, cx } from '@/components/ui/primitives';
 import { CodeEditor } from '@/components/ui/CodeEditor';
 import { EditorHeader } from './EditorHeader';

@@ -1,14 +1,20 @@
 {
   "name": "collection-editor",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Editor web de Postman Collections com hierarquia Folder \u203a Cen\u00e1rio \u203a ID de Teste \u203a Requisi\u00e7\u00e3o",
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc -b",
     "preview": "vite preview",
-    "test": "vitest run"
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc -b && vitest run && vite build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -30,5 +36,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "dompurify": "^3.4.16"
   }
 }
