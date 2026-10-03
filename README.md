@@ -10,7 +10,7 @@ Collection
             └── Requisição
 ```
 
-Ela acelera o trabalho repetitivo de QA (duplicar casos, renumerar IDs, alterar o mesmo campo do body em dezenas de requisições, achar onde uma variável é usada) e gera um **relatório das alterações** para o time e para o commit.
+Ela acelera o trabalho repetitivo de QA (duplicar casos, renumerar IDs, alterar o mesmo campo do body em dezenas de requisições, achar onde uma variável é usada) e gera um **relatório das alterações** pronto para compartilhar ou usar como mensagem de commit.
 
 **Princípios**
 
@@ -28,10 +28,9 @@ Ela acelera o trabalho repetitivo de QA (duplicar casos, renumerar IDs, alterar 
 4. [Atalhos de teclado](#4-atalhos-de-teclado)
 5. [Regras de comportamento](#5-regras-de-comportamento)
 6. [Armazenamento, desempenho e limites](#6-armazenamento-desempenho-e-limites)
-7. [Trabalho em equipe](#7-trabalho-em-equipe)
-8. [Solução de problemas](#8-solução-de-problemas)
-9. [Desenvolvimento](#9-desenvolvimento)
-10. [Limitações conhecidas e próximos passos](#10-limitações-conhecidas-e-próximos-passos)
+7. [Solução de problemas](#7-solução-de-problemas)
+8. [Desenvolvimento](#8-desenvolvimento)
+9. [Limitações conhecidas](#9-limitações-conhecidas)
 
 ---
 
@@ -54,7 +53,7 @@ Na primeira abertura aparece uma collection de exemplo. Para trabalhar com uma c
 | `npm run build` | Verifica os tipos e gera a versão de produção em `dist/` |
 | `npm run preview` | Serve o conteúdo de `dist/` em http://localhost:4173 |
 | `npm test` | Testes automatizados (Vitest) |
-| `npm run check` | Tipos + testes + build (o mesmo que a CI executa) |
+| `npm run check` | Tipos + testes + build |
 
 ---
 
@@ -240,7 +239,7 @@ A pré-visualização mostra antes → depois e bloqueia nomes repetidos no cen�
 
 ### 3.10 Templates de documentação
 
-Botão **Templates**: modelos em Markdown por nível (Folder, Cenário, ID). No editor do item, **Aplicar template…** preenche a descrição (que o Postman exibe como documentação). Os templates atuais são provisórios, até o time definir os modelos oficiais.
+Botão **Templates**: modelos em Markdown por nível (Folder, Cenário, ID). No editor do item, **Aplicar template…** preenche a descrição (que o Postman exibe como documentação). Os templates incluídos são exemplos: edite-os ou crie novos na mesma tela.
 
 Placeholders usam colchetes duplos (para não conflitar com `{{variáveis}}`):
 
@@ -265,7 +264,7 @@ Placeholders usam colchetes duplos (para não conflitar com `{{variáveis}}`):
 
 Cada collection guarda uma **base** (o estado na primeira abertura/importação). **Relatório** (`Alt+R`) compara o estado atual com a base e gera:
 
-- **Markdown** para o time:
+- **Markdown**, legível em qualquer visualizador:
   - **Resumo** com a identificação de cada ID adicionado, modificado e excluído (ex.: `TC-SLF-004`) e dos folders/cenários afetados;
   - **IDs de teste:** uma seção por ID (`TC-SLF-001 — modificado (antes: AUTH_001_Valid_Login)`) com o que mudou em cada requisição (URL, método, headers, campos do body, scripts) e se passou a ser pasta no Postman;
   - **Folders, cenários e collection:** mudanças de estrutura, com os IDs contidos;
@@ -274,12 +273,24 @@ Cada collection guarda uma **base** (o estado na primeira abertura/importação)
 
 Use **Copiar** ou **Baixar**. Depois de compartilhar/commitar, **Marcar estado atual como base** inicia um novo ciclo.
 
+### 3.13 Desfazer e refazer
+
+Toda alteração nas collections pode ser desfeita: edições, adicionar, excluir, duplicar, mover, renomear, ações em massa, importar e excluir collection.
+
+- **Botões ↶ ↷** no topo: o texto ao passar o mouse mostra o que será desfeito/refeito (ex.: "Desfazer: Mover item").
+- **`Ctrl+Z`** desfaz e **`Ctrl+Shift+Z`** / **`Ctrl+Y`** refaz, quando o foco não está num campo de texto. Dentro de um campo ou do editor de código, esses atalhos desfazem a digitação daquele campo; os botões do topo continuam desfazendo a última ação na collection.
+- Digitação contínua no mesmo campo vira um único passo; ações sem efeito (ex.: soltar um item no mesmo lugar) não entram no histórico.
+- Uma nova ação depois de desfazer descarta o que podia ser refeito.
+- Até 200 passos, enquanto a ferramenta estiver aberta.
+
 ---
 
 ## 4. Atalhos de teclado
 
 | Atalho | Ação |
 | --- | --- |
+| `Ctrl+Z` | Desfazer |
+| `Ctrl+Shift+Z` / `Ctrl+Y` | Refazer |
 | `Ctrl+K` | Buscar na árvore |
 | `Ctrl+Shift+F` | Buscar usos (variáveis, funções, texto) |
 | `Alt+N` | Adicionar filho ao item selecionado |
@@ -309,7 +320,7 @@ No Mac, use `Cmd` no lugar de `Ctrl`. Dentro do editor de código valem os atalh
 **Edição**
 - **Salvamento automático** no navegador; não há botão salvar.
 - **Nomes duplicados** no mesmo nível são bloqueados ao renomear.
-- **Exclusões** pedem confirmação e informam quantos itens filhos serão apagados.
+- **Exclusões** pedem confirmação e informam quantos itens filhos serão apagados; podem ser desfeitas.
 - **Validação em tempo real:** URL, JSON do body, sintaxe dos scripts, nomes de variáveis, chaves duplicadas e variáveis não definidas.
 - A **reordenação automática** só mexe em IDs no padrão TC, e só entre as posições que eles já ocupam. Ao **mover** um ID, a posição escolhida define o número (os demais são renumerados).
 
@@ -336,26 +347,13 @@ No Mac, use `Cmd` no lugar de `Ctrl`. Dentro do editor de código valem os atalh
 
 ---
 
-## 7. Trabalho em equipe
-
-Como os dados são locais, o compartilhamento é pelos arquivos:
-
-1. Importe a collection oficial (do Git ou do Postman).
-2. Faça as alterações.
-3. **Exporte** e versione o JSON no Git.
-4. Use o **Relatório** como mensagem de commit ou descrição do PR.
-5. **Marque como base** para o próximo ciclo.
-
-Os colegas importam o arquivo atualizado. Como a importação e a exportação são fiéis, o diff no Git mostra só o que foi editado.
-
----
-
-## 8. Solução de problemas
+## 7. Solução de problemas
 
 | Situação | O que fazer |
 | --- | --- |
 | Pastas de TC não aparecem no Postman após exportar | Verifique se o ID está em itálico (sintético). Renomeie, adicione descrição ou use **Tornar pasta real** ([2.3](#23-contêineres-sintéticos)) |
 | Variável aparece como "não definida", mas existe no Postman | Ela pode vir de um *environment*. Declare-a como global/escopo ou ignore o aviso — a exportação não é afetada |
+| Excluí ou alterei algo por engano | `Ctrl+Z` ou o botão ↶ no topo ([3.13](#313-desfazer-e-refazer)) |
 | "Não foi possível salvar no navegador" | Exporte as collections; verifique espaço em disco e se o navegador não está em modo anônimo/privado |
 | Collections sumiram | Os dados são por navegador e endereço. Confira se está no mesmo navegador/perfil e na mesma URL; reimporte o último JSON exportado |
 | Erro ao importar | Apenas Postman v2.0/v2.1. No Postman: *Export → Collection v2.1* |
@@ -364,7 +362,7 @@ Os colegas importam o arquivo atualizado. Como a importação e a exportação s
 
 ---
 
-## 9. Desenvolvimento
+## 8. Desenvolvimento
 
 ### Stack
 
@@ -393,7 +391,7 @@ src/
 │   ├── changes/               # Diff entre versões e geração do relatório
 │   ├── postman/               # Esquema, importação fiel e exportação
 │   └── monaco/                # Núcleo enxuto do Monaco, configuração e autocomplete
-├── store/                     # Zustand: collections, base do relatório, UI, templates, diálogos, avisos
+├── store/                     # Zustand: collections, histórico (desfazer), base do relatório, UI, templates, diálogos, avisos
 ├── hooks/                     # Seleção, ações de nós/collection, atalhos, hidratação
 └── components/
     ├── layout/                # Shell, cabeçalho, breadcrumb, redimensionamento
@@ -425,12 +423,10 @@ Definido em `src/types/collection.ts`. Pontos importantes:
 
 ---
 
-## 10. Limitações conhecidas e próximos passos
+## 9. Limitações conhecidas
 
-- **Sem desfazer/refazer** (undo/redo) fora do editor de código. Antes de ações em massa, confira a pré-visualização; para voltar atrás, reimporte o último JSON exportado.
+- O histórico de **desfazer** vale enquanto a ferramenta está aberta: recarregar ou fechar a página o apaga (os dados continuam salvos).
 - Os dados são **por navegador**; não há sincronização entre máquinas.
 - Autenticação, bodies não-*raw* e exemplos de resposta são preservados, mas **não editáveis**.
 - A validação de scripts é de sintaxe e a análise de escopo é heurística (não executa o código): cobre declarações no topo dos scripts, `pm.*.get/set` e `{{var}}`; construções dinâmicas (nomes montados em tempo de execução) não são analisadas.
 - Apenas o formato Postman **v2.0/v2.1**.
-
-Próximos passos: templates oficiais do time (e aplicação automática), desfazer/refazer, edição de autenticação, sincronização e versionamento em nuvem.

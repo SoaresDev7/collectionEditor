@@ -2,10 +2,13 @@ import { useEffect } from 'react';
 import { useUiStore } from '@/store/uiStore';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useDialogStore } from '@/store/dialogStore';
+import { redo, undo } from '@/store/undo';
 import { useNodeActions } from './useNodeActions';
 import { useCollectionActions } from './useCollectionActions';
 
 export const SHORTCUTS: { keys: string; description: string }[] = [
+  { keys: 'Ctrl+Z', description: 'Desfazer' },
+  { keys: 'Ctrl+Shift+Z / Ctrl+Y', description: 'Refazer' },
   { keys: 'Ctrl+K', description: 'Buscar na árvore' },
   { keys: 'Alt+N', description: 'Adicionar filho ao item selecionado' },
   { keys: 'Ctrl+D', description: 'Duplicar item selecionado' },
@@ -57,7 +60,9 @@ export function useKeyboardShortcuts() {
       if (e.altKey && e.code === 'KeyR') return run(() => useDialogStore.getState().setReport(true));
       if (e.altKey && e.code === 'KeyM') return run(() => useDialogStore.getState().openBulkEdit());
       if (mod && e.shiftKey && key === 'l') return run(ui.toggleTheme);
-      if (inField) return;
+      if (inField) return; // campos e editor de código têm o próprio desfazer
+      if (mod && key === 'z' && !e.shiftKey) return run(undo);
+      if (mod && ((key === 'z' && e.shiftKey) || key === 'y')) return run(redo);
       if (mod && key === 'd' && selected) return run(() => nodeActions.duplicate(selected));
       if (e.altKey && e.code === 'KeyN' && selected) return run(() => nodeActions.add(selected));
     };

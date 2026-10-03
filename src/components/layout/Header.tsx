@@ -1,4 +1,6 @@
-import { Copy, Download, FileClock, FileText, Keyboard, Layers, Moon, PanelRight, PencilRuler, Plus, Sun, TextCursorInput, Trash2, Upload } from 'lucide-react';
+import { Copy, Download, FileClock, FileText, Keyboard, Layers, Moon, PanelRight, PencilRuler, Plus, Redo2, Sun, TextCursorInput, Trash2, Undo2, Upload } from 'lucide-react';
+import { useHistoryStore } from '@/store/historyStore';
+import { redo, undo } from '@/store/undo';
 import { Menu } from '@/components/ui/Menu';
 import { useState } from 'react';
 import { useCollectionStore } from '@/store/collectionStore';
@@ -15,6 +17,8 @@ export function Header() {
   const { theme, toggleTheme, toggleVariablesPanel, showVariablesPanel } = useUiStore();
   const actions = useCollectionActions();
   const [showKeys, setShowKeys] = useState(false);
+  const lastUndo = useHistoryStore((s) => s.past.at(-1)?.label);
+  const lastRedo = useHistoryStore((s) => s.future.at(-1)?.label);
 
   return (
     <header className="flex flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
@@ -48,6 +52,14 @@ export function Header() {
       <IconButton label="Excluir collection" className="hover:text-danger" onClick={actions.remove}>
         <Trash2 size={15} />
       </IconButton>
+      <div className="flex items-center">
+        <IconButton label={lastUndo ? `Desfazer: ${lastUndo} (Ctrl+Z)` : 'Nada para desfazer'} disabled={!lastUndo} onClick={undo} className="disabled:opacity-40">
+          <Undo2 size={15} />
+        </IconButton>
+        <IconButton label={lastRedo ? `Refazer: ${lastRedo} (Ctrl+Shift+Z)` : 'Nada para refazer'} disabled={!lastRedo} onClick={redo} className="disabled:opacity-40">
+          <Redo2 size={15} />
+        </IconButton>
+      </div>
       <Button size="sm" variant="ghost" icon={<Upload size={14} />} onClick={() => useDialogStore.getState().setImporting(true)} title="Importar collection do Postman (Ctrl+O)">
         Importar
       </Button>

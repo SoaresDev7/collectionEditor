@@ -14,7 +14,7 @@ import { TemplatesDialog } from '@/components/templates/TemplatesDialog';
 import { MoveDialog } from '@/components/move/MoveDialog';
 import { ImportDialog } from '@/components/import/ImportDialog';
 import { RenameDialog } from '@/components/rename/RenameDialog';
-import { useActiveCollection } from '@/store/collectionStore';
+import { useActiveCollection, useCollectionStore } from '@/store/collectionStore';
 import { useBaselineStore } from '@/store/baselineStore';
 import { IconButton, cx } from '@/components/ui/primitives';
 import { Header } from './Header';
@@ -45,6 +45,13 @@ function Shell() {
   useEffect(() => {
     if (collection && !hasBaseline) useBaselineStore.getState().setBaseline(collection);
   }, [collection, hasBaseline]);
+
+  // Bases de collections excluídas em sessões anteriores (o desfazer só vale na sessão atual).
+  useEffect(() => {
+    const ids = new Set(useCollectionStore.getState().collections.map((c) => c.id));
+    const { baselines, removeBaseline } = useBaselineStore.getState();
+    for (const id of Object.keys(baselines)) if (!ids.has(id)) removeBaseline(id);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');

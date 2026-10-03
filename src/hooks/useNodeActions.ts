@@ -57,7 +57,7 @@ export function useNodeActions() {
     const children = countDescendants(ref);
     const ok = await confirmDialog({
       title: `Excluir ${KIND_LABEL[ref.kind]}`,
-      message: `Excluir "${ref.node.name}"${children ? ` e ${children} item(ns) dentro dele` : ''}? Esta ação não pode ser desfeita.`,
+      message: `Excluir "${ref.node.name}"${children ? ` e ${children} item(ns) dentro dele` : ''}? É possível desfazer com Ctrl+Z.`,
       confirmLabel: 'Excluir',
       danger: true,
     });

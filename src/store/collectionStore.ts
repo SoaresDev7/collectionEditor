@@ -19,6 +19,7 @@ import {
 import { childArray, findPath, nearest } from '@/lib/tree';
 import { nowIso } from '@/lib/ids';
 import { indexedDbStorage } from '@/lib/storage';
+import { useHistoryStore, type Snapshot } from './historyStore';
 
 type CollectionState = {
   collections: Collection[];
@@ -62,6 +63,24 @@ const resort = (scenario: Scenario) => {
   scenario.testIds = sortTestIds(scenario.idCode, scenario.testIds);
 };
 
+/** Descrição curta de uma edição para o histórico ("Desfazer: Editar URL"). */
+const PATCH_LABEL: Record<string, string> = {
+  name: 'Renomear',
+  description: 'Editar descrição',
+  url: 'Editar URL',
+  method: 'Alterar método',
+  body: 'Editar body',
+  headers: 'Editar headers',
+  variables: 'Editar variáveis',
+  preRequestScripts: 'Editar pré-request',
+  postRequestScripts: 'Editar pós-request',
+  synthetic: 'Tornar pasta real',
+};
+const patchLabel = (patch: object) => {
+  const keys = Object.keys(patch);
+  return keys.length === 1 ? (PATCH_LABEL[keys[0]] ?? 'Editar') : 'Editar';
+};
+
 const siblingNames = (parent: NodeRef) => (childArray(parent) ?? []).map((n) => n.name);
 
 /** Migração v1 → v2: prefixo de nomenclatura saiu do folder e virou código do cenário. */
@@ -78,17 +97,39 @@ function migrateV1(collections: Collection[]): Collection[] {
 export const useCollectionStore = create<CollectionState>()(
   persist(
     immer((set, get) => {
-      /** Executa `fn` na collection ativa (draft do immer) e atualiza `updatedAt`. */
-      const mutateActive = <T>(fn: (c: Collection) => T): T | undefined => {
-        let result: T | undefined;
-        set((state) => {
-          const c = state.collections.find((x) => x.id === state.activeCollectionId);
-          if (!c) return;
-          result = fn(c);
-          c.updatedAt = nowIso();
-        });
+      const snapshot = (): Snapshot => ({ collections: get().collections, activeCollectionId: get().activeCollectionId });
+
+      /** Aplica uma alteração e, se algo mudou, registra o estado anterior no histórico (desfazer). */
+      const tracked = <T>(label: string, run: () => T, key?: string): T => {
+        const before = snapshot();
+        const result = run();
+        if (get().collections !== before.collections) useHistoryStore.getState().record(label, before, key);
         return result;
       };
+
+      /**
+       * Executa `fn` na collection ativa (draft do immer). Se houve mudança,
+       * registra no histórico com `label` e atualiza `updatedAt`.
+       */
+      const mutateActive = <T>(label: string, fn: (c: Collection) => T, key?: string): T | undefined =>
+        tracked(
+          label,
+          () => {
+            let result: T | undefined;
+            const before = get().collections;
+            set((state) => {
+              const c = state.collections.find((x) => x.id === state.activeCollectionId);
+              if (c) result = fn(c);
+            });
+            if (get().collections !== before)
+              set((state) => {
+                const c = state.collections.find((x) => x.id === state.activeCollectionId);
+                if (c) c.updatedAt = nowIso();
+              });
+            return result;
+          },
+          key,
+        );
 
       return {
         collections: [],
@@ -96,47 +137,60 @@ export const useCollectionStore = create<CollectionState>()(
 
         newCollection: (partial) => {
           const c = createCollection(partial);
-          set((s) => {
-            s.collections.push(c);
-            s.activeCollectionId = c.id;
-          });
+          tracked('Nova collection', () =>
+            set((s) => {
+              s.collections.push(c);
+              s.activeCollectionId = c.id;
+            }),
+          );
           return c.id;
         },
 
         addCollection: (collection) =>
-          set((s) => {
-            s.collections.push(collection);
-            s.activeCollectionId = collection.id;
-          }),
+          tracked('Importar collection', () =>
+            set((s) => {
+              s.collections.push(collection);
+              s.activeCollectionId = collection.id;
+            }),
+          ),
 
         duplicateCollection: (id) => {
           const source = get().collections.find((c) => c.id === id);
           if (!source) return null;
           const copy = cloneCollection(source);
           copy.name = uniqueName(source.name, get().collections.map((c) => c.name));
-          set((s) => {
-            s.collections.push(copy);
-            s.activeCollectionId = copy.id;
-          });
+          tracked('Duplicar collection', () =>
+            set((s) => {
+              s.collections.push(copy);
+              s.activeCollectionId = copy.id;
+            }),
+          );
           return copy.id;
         },
 
         deleteCollection: (id) =>
-          set((s) => {
-            s.collections = s.collections.filter((c) => c.id !== id);
-            if (s.activeCollectionId === id) s.activeCollectionId = s.collections[0]?.id ?? null;
-          }),
+          tracked('Excluir collection', () =>
+            set((s) => {
+              s.collections = s.collections.filter((c) => c.id !== id);
+              if (s.activeCollectionId === id) s.activeCollectionId = s.collections[0]?.id ?? null;
+            }),
+          ),
 
         setActiveCollection: (id) => set({ activeCollectionId: id }),
 
         updateNode: (id, patch) =>
-          mutateActive((c) => {
-            const path = findPath(c, id);
-            if (path) Object.assign(path[path.length - 1].node, patch);
-          }),
+          mutateActive(
+            patchLabel(patch),
+            (c) => {
+              const path = findPath(c, id);
+              if (path) Object.assign(path[path.length - 1].node, patch);
+            },
+            // Digitação no mesmo campo vira uma entrada só no histórico.
+            `update:${id}:${Object.keys(patch).sort().join(',')}`,
+          ),
 
         addChild: (parentId) =>
-          mutateActive((c) => {
+          mutateActive('Adicionar item', (c) => {
             const path = findPath(c, parentId);
             if (!path) return null;
             const parent = path[path.length - 1];
@@ -169,7 +223,7 @@ export const useCollectionStore = create<CollectionState>()(
           }) ?? null,
 
         deleteNode: (id) =>
-          mutateActive((c) => {
+          mutateActive('Excluir item', (c) => {
             const path = findPath(c, id);
             if (!path || path.length < 2) return;
             const siblings = childArray(path[path.length - 2])!;
@@ -178,7 +232,7 @@ export const useCollectionStore = create<CollectionState>()(
           }),
 
         duplicateNode: (id) =>
-          mutateActive((c) => {
+          mutateActive('Duplicar item', (c) => {
             const path = findPath(c, id);
             if (!path || path.length < 2) return null;
             const ref = path[path.length - 1];
@@ -227,7 +281,7 @@ export const useCollectionStore = create<CollectionState>()(
           }) ?? null,
 
         duplicateTestIdN: (id, count) =>
-          mutateActive((c) => {
+          mutateActive('Duplicar ID N vezes', (c) => {
             const path = findPath(c, id);
             const ref = path?.[path.length - 1];
             if (!path || ref?.kind !== 'testId' || count < 1) return [];
@@ -250,14 +304,14 @@ export const useCollectionStore = create<CollectionState>()(
           }) ?? [],
 
         renumberScenarioTestIds: (scenarioId) =>
-          mutateActive((c) => {
+          mutateActive('Renumerar IDs', (c) => {
             const ref = findPath(c, scenarioId)?.at(-1);
             if (ref?.kind !== 'scenario') return;
             ref.node.testIds.forEach((t, i) => (t.name = formatTestIdName(ref.node.idCode, i + 1)));
           }),
 
         setScenarioIdCode: (scenarioId, code) =>
-          mutateActive((c) => {
+          mutateActive('Alterar código do cenário', (c) => {
             const ref = findPath(c, scenarioId)?.at(-1);
             if (ref?.kind !== 'scenario') return;
             const scenario = ref.node;
@@ -272,7 +326,7 @@ export const useCollectionStore = create<CollectionState>()(
           }),
 
         renameNodes: (renames) =>
-          mutateActive((c) => {
+          mutateActive('Renomear IDs em massa', (c) => {
             const touched = new Set<Scenario>();
             for (const { id, name } of renames) {
               const path = findPath(c, id);
@@ -285,7 +339,7 @@ export const useCollectionStore = create<CollectionState>()(
           }),
 
         moveNode: (id, targetParentId, index) =>
-          mutateActive((c): MoveResult => {
+          mutateActive('Mover item', (c): MoveResult => {
             const path = findPath(c, id);
             const targetPath = findPath(c, targetParentId);
             if (!path || path.length < 2 || !targetPath) return { ok: false, error: 'Item não encontrado.' };
@@ -329,7 +383,7 @@ export const useCollectionStore = create<CollectionState>()(
           }) ?? { ok: false, error: 'Nenhuma collection ativa.' },
 
         applyBodies: (bodies) =>
-          mutateActive((c) => {
+          mutateActive('Editar body em massa', (c) => {
             const byId = new Map(bodies.map((b) => [b.requestId, b.body]));
             for (const f of c.folders)
               for (const s of f.scenarios)

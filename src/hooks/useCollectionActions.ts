@@ -3,7 +3,6 @@ import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
 import { confirmDialog, notify, promptDialog } from '@/store/feedbackStore';
 import { downloadJson, exportFileName, toPostman } from '@/lib/postman/export';
-import { useBaselineStore } from '@/store/baselineStore';
 
 const state = () => useCollectionStore.getState();
 const active = () => state().collections.find((c) => c.id === state().activeCollectionId);
@@ -40,13 +39,12 @@ export function useCollectionActions() {
         if (!c) return;
         const ok = await confirmDialog({
           title: 'Excluir collection',
-          message: `Excluir "${c.name}" com todos os seus itens? Exporte antes se quiser manter uma cópia.`,
+          message: `Excluir "${c.name}" com todos os seus itens? É possível desfazer com Ctrl+Z enquanto a ferramenta estiver aberta.`,
           confirmLabel: 'Excluir',
           danger: true,
         });
         if (!ok) return;
         state().deleteCollection(c.id);
-        useBaselineStore.getState().removeBaseline(c.id);
         useUiStore.getState().select(null);
         notify('success', 'Collection excluída.');
       },
