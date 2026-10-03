@@ -161,7 +161,7 @@ Botão **Importar** (`Ctrl+O`): arraste o arquivo ou cole o JSON (Postman v2.0/v
 
 - **Encaixe na hierarquia**: pasta de 1º nível → Folder, 2º → Cenário, 3º → ID.
 - **Pastas abaixo do 3º nível** continuam existindo dentro do ID (a requisição mostra o caminho) e são recriadas na exportação.
-- **Contêineres sintéticos** (em itálico na árvore) acomodam requisições fora desse encaixe, por exemplo soltas na raiz. Eles não viram pastas na exportação, a menos que recebam descrição, scripts ou variáveis, ou que você use **Tornar pasta real**.
+- **Contêineres sintéticos** (em itálico na árvore) acomodam requisições fora desse encaixe, por exemplo soltas na raiz. Eles não viram pastas na exportação enquanto não ganharem identidade: ao **renomear**, **duplicar** ou dar descrição, scripts ou variáveis (ou usar **Tornar pasta real**), passam a ser exportados como pasta e deixam de aparecer em itálico. Renomear só a requisição dentro deles não muda nada.
 - **Preservado sem edição** e exportado igual: autenticação, exemplos de resposta, ids, `protocolProfileBehavior`, objetos de URL e descrição, bodies que não são raw (urlencoded, form-data…), métodos fora da lista, campos extras de headers e variáveis.
 - **Exportação**: parte do JSON original e sobrescreve só o que foi editado. Importar e exportar sem mexer em nada devolve o mesmo arquivo (coberto por teste).
 - Variáveis do campo `variable` de pastas voltam para esse campo; variáveis desativadas no Postman não entram na resolução.

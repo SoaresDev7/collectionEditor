@@ -1,5 +1,6 @@
 import { KIND_LABEL, type Collection, type Header, type NodeKind, type NodeRef, type Variable } from '@/types/collection';
 import { childrenOf } from '@/lib/tree';
+import { isTransparentRef } from '@/lib/synthetic';
 import { diffJson, type JsonChange } from '@/lib/json/diff';
 import { displayValue, parseLoose } from '@/lib/json/loose';
 
@@ -206,6 +207,7 @@ export function diffCollections(base: Collection, current: Collection): Collecti
     if (x.node.postRequestScripts !== y.node.postRequestScripts)
       details.push(`Script pós-request alterado (${lineDelta(x.node.postRequestScripts, y.node.postRequestScripts)})`);
     if ('variables' in x.node && 'variables' in y.node) details.push(...diffVariables(x.node.variables, y.node.variables));
+    if (isTransparentRef(x) && !isTransparentRef(y)) details.push('Passa a ser exportado como pasta no Postman');
     if (x.kind === 'scenario' && y.kind === 'scenario' && x.node.idCode !== y.node.idCode)
       details.push(`Código dos IDs: ${code(x.node.idCode)} → ${code(y.node.idCode)}`);
 

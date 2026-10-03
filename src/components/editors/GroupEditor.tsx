@@ -6,6 +6,7 @@ import { childrenOf, nearest, walk } from '@/lib/tree';
 import { nextTestIdName } from '@/lib/nomenclature';
 import { Badge, Button, Tabs } from '@/components/ui/primitives';
 import { PreservedNotice, preservedFields } from './shared/PreservedNotice';
+import { isTransparentRef } from '@/lib/synthetic';
 import { EditorHeader } from './EditorHeader';
 import { ChildrenList } from './ChildrenList';
 import { NameField } from './shared/NameField';
@@ -73,7 +74,7 @@ export function GroupEditor({ path }: { path: NodePath }) {
     <div className="flex flex-col gap-5">
       <EditorHeader refNode={ref} />
 
-      {'synthetic' in node && node.synthetic && (
+      {isTransparentRef(ref) && (
         <PreservedNotice
           action={
             <Button size="sm" onClick={() => updateNode(node.id, { synthetic: false })}>
@@ -85,7 +86,7 @@ export function GroupEditor({ path }: { path: NodePath }) {
             <b className="text-fg">Contêiner sintético.</b> Não existe como pasta no Postman: foi criado só para encaixar
             requisições na hierarquia. Na exportação, os itens dentro dele saem no lugar original.
           </p>
-          <p>Se você adicionar descrição, scripts ou variáveis, ele passa a ser exportado como pasta.</p>
+          <p>Se você renomear, duplicar ou adicionar descrição, scripts ou variáveis, ele passa a ser exportado como pasta.</p>
         </PreservedNotice>
       )}
       {preservedFields(node.postman).length > 0 && (

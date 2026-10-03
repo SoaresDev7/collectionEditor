@@ -7,6 +7,7 @@ import {
   type PostmanRequest,
   type PostmanVariable,
 } from './schema';
+import { isTransparent } from '../synthetic';
 
 /**
  * Converte a collection para o formato Postman v2.1.
@@ -163,12 +164,9 @@ function testIdChildren(t: TestId): PostmanItem[] {
 
 type Group = (Folder | Scenario | TestId) & Scripted;
 
-/** Contêiner sintético sem conteúdo próprio: os filhos vão direto para o pai. */
-const transparent = (g: Group) =>
-  !!g.synthetic && !g.description && !g.preRequestScripts.trim() && !g.postRequestScripts.trim() && !g.variables.length;
-
-function groupItems(g: Group, children: PostmanItem[]): PostmanItem[] {
-  if (transparent(g)) return children;
+/** Contêiner sintético sem identidade própria: os filhos vão direto para o pai. */
+function groupItems(kind: 'folder' | 'scenario' | 'testId', g: Group, children: PostmanItem[]): PostmanItem[] {
+  if (isTransparent(kind, g)) return children;
   const orig = (g.postman ?? {}) as PostmanItem & PostmanRaw;
   return [
     clean({
@@ -189,18 +187,21 @@ export function toPostman(collection: Collection): PostmanCollection {
     ...orig,
     info: clean({
       ...info,
-      _postman_id: info._postman_id ?? collection.id,
+      // Collection importada sem _postman_id continua sem; criada na ferramenta usa o próprio id.
+      _postman_id: info._postman_id ?? (collection.postman ? undefined : collection.id),
       name: collection.name,
       description: description(collection.description, info.description) as string | undefined,
       schema: info.schema ?? POSTMAN_SCHEMA_V21,
     }),
     item: collection.folders.flatMap((folder) =>
       groupItems(
+        'folder',
         folder,
         folder.scenarios.flatMap((scenario) =>
           groupItems(
+            'scenario',
             scenario,
-            scenario.testIds.flatMap((testId) => groupItems(testId, testIdChildren(testId))),
+            scenario.testIds.flatMap((testId) => groupItems('testId', testId, testIdChildren(testId))),
           ),
         ),
       ),

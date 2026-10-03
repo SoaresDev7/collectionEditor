@@ -46,9 +46,13 @@ export type Imported = {
 /**
  * Contêiner criado só para encaixar a collection na hierarquia (ex.: requisições
  * soltas na raiz). Não existe como pasta no Postman e não é exportado como pasta,
- * a menos que receba descrição, scripts ou variáveis.
+ * a menos que seja renomeado ou receba descrição, scripts ou variáveis.
  */
-export type Synthetic = { synthetic?: boolean };
+export type Synthetic = {
+  synthetic?: boolean;
+  /** Nome automático dado na importação; se o nome mudar, o contêiner passa a ser exportado como pasta. */
+  syntheticName?: string;
+};
 
 /** Header como lista (e não Record) para preservar ordem, permitir chaves vazias durante a edição e desabilitar itens. */
 export type Header = {

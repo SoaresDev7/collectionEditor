@@ -3,6 +3,7 @@ import { HTTP_METHODS } from '@/types/collection';
 import { createCollection, createFolder, createHeader, createRequest, createScenario, createTestId, createVariable } from '../factories';
 import { sanitizeIdCode, suggestIdCode } from '../nomenclature';
 import { uid } from '../ids';
+import { SYNTHETIC_FOLDER_NAME, SYNTHETIC_SCENARIO_NAME } from '../synthetic';
 import { GENERATED_END, GENERATED_START } from './export';
 import type { PostmanCollection, PostmanEvent, PostmanItem, PostmanRequest, PostmanUrl, PostmanVariable } from './schema';
 
@@ -188,7 +189,7 @@ export function importPostman(json: unknown): ImportResult {
 
   const syntheticTestId = (request: PostmanItem): TestId => {
     synthetic++;
-    return createTestId({ name: request.name, synthetic: true, requests: [convertRequest(request, undefined, notes)] });
+    return createTestId({ name: request.name, synthetic: true, syntheticName: request.name, requests: [convertRequest(request, undefined, notes)] });
   };
 
   const buildScenario = (item: PostmanItem): Scenario => {
@@ -205,7 +206,7 @@ export function importPostman(json: unknown): ImportResult {
 
   const syntheticScenario = (requests: PostmanItem[]): Scenario => {
     synthetic++;
-    return createScenario({ name: '(requisições sem pasta)', idCode: 'REQ', synthetic: true, testIds: requests.map(syntheticTestId) });
+    return createScenario({ name: SYNTHETIC_SCENARIO_NAME, syntheticName: SYNTHETIC_SCENARIO_NAME, idCode: 'REQ', synthetic: true, testIds: requests.map(syntheticTestId) });
   };
 
   const buildFolder = (item: PostmanItem): Folder => {
@@ -220,7 +221,7 @@ export function importPostman(json: unknown): ImportResult {
     if (run.folder) collection.folders.push(...run.items.map(buildFolder));
     else {
       synthetic++;
-      collection.folders.push(createFolder({ name: '(requisições na raiz)', synthetic: true, scenarios: [syntheticScenario(run.items)] }));
+      collection.folders.push(createFolder({ name: SYNTHETIC_FOLDER_NAME, syntheticName: SYNTHETIC_FOLDER_NAME, synthetic: true, scenarios: [syntheticScenario(run.items)] }));
     }
   }
 

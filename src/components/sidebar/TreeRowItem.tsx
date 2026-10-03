@@ -3,6 +3,7 @@ import { ChevronRight, Copy, CopyPlus, Plus, Trash2 } from 'lucide-react';
 import { CHILD_KIND, KIND_LABEL } from '@/types/collection';
 import { IconButton, cx } from '@/components/ui/primitives';
 import { NodeIcon } from '@/components/ui/NodeIcon';
+import { isTransparentRef } from '@/lib/synthetic';
 import type { TreeRow } from './flattenTree';
 
 export const ROW_HEIGHT = 28;
@@ -125,12 +126,12 @@ export const TreeRowItem = memo(function TreeRowItem({ row, selected, renaming, 
         <RenameInput initial={ref.node.name} onDone={(v) => actions.onRenameCommit(id, v)} />
       ) : (
         <span
-          title={'synthetic' in ref.node && ref.node.synthetic ? `${ref.node.name} — contêiner sintético: não existe como pasta no Postman` : ref.node.name}
+          title={isTransparentRef(ref) ? `${ref.node.name} — contêiner sintético: não existe como pasta no Postman` : ref.node.name}
           className={cx(
             'min-w-0 flex-1 truncate',
             isRoot && 'font-semibold',
             match && 'font-semibold text-accent',
-            'synthetic' in ref.node && ref.node.synthetic && 'text-muted italic',
+            isTransparentRef(ref) && 'text-muted italic',
           )}
         >
           {ref.node.name || <em className="text-muted">sem nome</em>}
