@@ -304,40 +304,6 @@ No Mac, use `Cmd` no lugar de `Ctrl`. Dentro do editor de código valem os atalh
 
 ---
 
-## 7. Disponibilizar na empresa
-
-A ferramenta é um **site estático** (HTML/JS/CSS). Basta gerar o build e publicar a pasta `dist/` em qualquer servidor de arquivos, em qualquer caminho (o build usa caminhos relativos).
-
-```bash
-npm ci
-npm run build        # gera dist/
-```
-
-| Opção | Quando usar |
-| --- | --- |
-| **Servidor interno** (Nginx, Apache, IIS) ou bucket (S3, Azure Blob, GCS) | Acesso só pela rede da empresa / VPN — recomendado |
-| **GitHub Pages** | Repositório no GitHub (em repositório privado exige plano pago) |
-| Netlify, Vercel, Cloudflare Pages | Publicação rápida; avalie a política de dados da empresa |
-| `npm run dev` na máquina de cada QA | Sem infraestrutura |
-
-Exemplo com **Nginx** servindo em `/collection-editor/`:
-
-```nginx
-location /collection-editor/ {
-    alias /var/www/collection-editor/;            # conteúdo de dist/
-    location ~* /assets/ { add_header Cache-Control "public, max-age=31536000, immutable"; }
-    location ~* index\.html$ { add_header Cache-Control "no-cache"; }
-}
-```
-
-Os arquivos em `assets/` têm hash no nome e podem ficar em cache por tempo longo; o `index.html` não deve ficar em cache, para que as atualizações cheguem a todos.
-
-**Atualizar a versão publicada:** `git pull` → `npm ci` → `npm run build` → substituir o conteúdo publicado por `dist/`. Os dados dos usuários não são afetados (ficam no navegador de cada um), desde que o endereço do site continue o mesmo.
-
-**Integração contínua:** `.github/workflows/ci.yml` roda tipos, testes e build a cada push em `main`/`develop` e em pull requests.
-
----
-
 ## 8. Trabalho em equipe
 
 Como os dados são locais, o compartilhamento é pelos arquivos:
