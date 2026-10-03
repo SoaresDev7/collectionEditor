@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
 import { useSelectedPath } from '@/hooks/useSelection';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useHydrated } from '@/hooks/useHydrated';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { NodeEditor } from '@/components/editors/NodeEditor';
 import { VariablesPanel } from '@/components/variables/VariablesPanel';
@@ -20,6 +21,12 @@ import { Header } from './Header';
 import { Breadcrumb } from './Breadcrumb';
 
 export function AppShell() {
+  const hydrated = useHydrated();
+  if (!hydrated) return <div className="flex h-full items-center justify-center text-sm text-muted">Carregando collections…</div>;
+  return <Shell />;
+}
+
+function Shell() {
   const path = useSelectedPath();
   const showVariables = useUiStore((s) => s.showVariablesPanel);
   const theme = useUiStore((s) => s.theme);

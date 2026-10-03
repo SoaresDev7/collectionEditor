@@ -16,7 +16,10 @@ export function ImportDialog() {
 
 function ImportContent() {
   const close = () => useDialogStore.getState().setImporting(false);
-  const [text, setText] = useState('');
+  /** Conteúdo do arquivo escolhido (fica fora da caixa de texto, que travaria com arquivos grandes). */
+  const [fileText, setFileText] = useState('');
+  const [pasted, setPasted] = useState('');
+  const text = fileText || pasted;
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -32,7 +35,8 @@ function ImportContent() {
 
   const readFile = async (file: File) => {
     setFileName(file.name);
-    setText(await file.text());
+    setPasted('');
+    setFileText(await file.text());
   };
 
   const onDrop = (e: DragEvent) => {
@@ -80,16 +84,18 @@ function ImportContent() {
           >
             <FileJson size={28} className="text-accent" />
             <span className="font-medium">{fileName ?? 'Arraste o arquivo aqui ou clique para escolher'}</span>
+            {fileName && <span className="text-xs text-muted">{(fileText.length / 1e6).toFixed(1)} MB</span>}
             <span className="text-xs text-muted">.json exportado pelo Postman ou por esta ferramenta</span>
             <input type="file" accept=".json,application/json" className="hidden" onChange={(e) => e.target.files?.[0] && void readFile(e.target.files[0])} />
           </label>
           <details className="text-sm">
             <summary className="cursor-pointer text-muted">…ou cole o JSON</summary>
             <Textarea
-              value={text}
+              value={pasted}
               onChange={(e) => {
                 setFileName(null);
-                setText(e.target.value);
+                setFileText('');
+                setPasted(e.target.value);
               }}
               className="mt-2 min-h-40 font-mono text-xs"
               placeholder='{"info": {...}, "item": [...]}'

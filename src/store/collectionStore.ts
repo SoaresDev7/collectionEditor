@@ -17,6 +17,7 @@ import {
 } from '@/lib/nomenclature';
 import { childArray, findPath, nearest } from '@/lib/tree';
 import { nowIso } from '@/lib/ids';
+import { indexedDbStorage } from '@/lib/storage';
 
 type CollectionState = {
   collections: Collection[];
@@ -334,6 +335,8 @@ export const useCollectionStore = create<CollectionState>()(
     {
       name: 'collection-editor:data',
       version: 2,
+      storage: indexedDbStorage<Pick<CollectionState, 'collections' | 'activeCollectionId'>>(),
+      partialize: (s) => ({ collections: s.collections, activeCollectionId: s.activeCollectionId }),
       migrate: (persisted, version) => {
         const state = persisted as { collections: Collection[]; activeCollectionId: string | null };
         if (version < 2) state.collections = migrateV1(state.collections ?? []);

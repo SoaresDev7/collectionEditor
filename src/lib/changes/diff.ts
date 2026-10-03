@@ -8,6 +8,9 @@ import { displayValue, parseLoose } from '@/lib/json/loose';
  * descreve o que foi adicionado, removido e modificado.
  */
 
+/** ID de teste ao qual uma alteração pertence. */
+export type Owner = { id: string; name: string; location: string };
+
 export type NodeChange = {
   nodeId: string;
   kind: NodeKind;
@@ -15,9 +18,15 @@ export type NodeChange = {
   /** Caminho legível "Folder › Cenário › ID" (sem a collection). */
   location: string;
   details: string[];
+  /** ID de teste dono do item (o próprio, se for um ID). */
+  owner?: Owner;
 };
 
-export type AddedOrRemoved = NodeChange & { contents: string };
+export type AddedOrRemoved = NodeChange & {
+  contents: string;
+  /** Nomes dos IDs de teste contidos (inclui o próprio, se for um ID). */
+  testIds: string[];
+};
 
 export type BodyChange = {
   requestId: string;
@@ -29,6 +38,7 @@ export type BodyChange = {
   groupDescription: string;
   /** Complemento por requisição dentro do grupo (ex.: valor anterior). */
   groupDetail?: string;
+  owner?: Owner;
 };
 
 export type CollectionDiff = {
@@ -39,17 +49,28 @@ export type CollectionDiff = {
   bodyChanges: BodyChange[];
 };
 
-type Indexed = { ref: NodeRef; parentId: string | null; trail: string[] };
+type Indexed = { ref: NodeRef; parentId: string | null; trail: string[]; owner?: Owner };
 
 function index(collection: Collection): Map<string, Indexed> {
   const map = new Map<string, Indexed>();
-  const visit = (ref: NodeRef, parentId: string | null, trail: string[]) => {
+  const visit = (ref: NodeRef, parentId: string | null, trail: string[], owner?: Owner) => {
     const own = ref.kind === 'collection' ? [] : [...trail, ref.node.name];
-    map.set(ref.node.id, { ref, parentId, trail: own });
-    for (const c of childrenOf(ref)) visit(c, ref.node.id, own);
+    const self = ref.kind === 'testId' ? { id: ref.node.id, name: ref.node.name, location: trail.join(' › ') } : owner;
+    map.set(ref.node.id, { ref, parentId, trail: own, owner: self });
+    for (const c of childrenOf(ref)) visit(c, ref.node.id, own, self);
   };
   visit({ kind: 'collection', node: collection }, null, []);
   return map;
+}
+
+function containedTestIds(ref: NodeRef): string[] {
+  const out: string[] = [];
+  const visit = (r: NodeRef) => {
+    if (r.kind === 'testId') out.push(r.node.name);
+    else childrenOf(r).forEach(visit);
+  };
+  visit(ref);
+  return out;
 }
 
 const PLURAL: Record<NodeKind, string> = {
@@ -150,6 +171,8 @@ export function diffCollections(base: Collection, current: Collection): Collecti
       location: where(item.trail.slice(0, -1)),
       details: [],
       contents: contentsSummary(item.ref),
+      testIds: containedTestIds(item.ref),
+      owner: item.owner,
     });
   }
   for (const [id, item] of a) {
@@ -161,6 +184,8 @@ export function diffCollections(base: Collection, current: Collection): Collecti
       location: where(item.trail.slice(0, -1)),
       details: [],
       contents: contentsSummary(item.ref),
+      testIds: containedTestIds(item.ref),
+      owner: item.owner,
     });
   }
 
@@ -203,6 +228,7 @@ export function diffCollections(base: Collection, current: Collection): Collecti
               description: describeJsonChange(c),
               groupDescription: g.description,
               groupDetail: g.detail,
+              owner: now.owner,
             });
           }
         } else details.push('Body alterado');
@@ -210,7 +236,7 @@ export function diffCollections(base: Collection, current: Collection): Collecti
     }
 
     if (details.length)
-      result.modified.push({ nodeId: id, kind: y.kind, name: y.node.name, location: where(now.trail), details });
+      result.modified.push({ nodeId: id, kind: y.kind, name: y.node.name, location: where(now.trail), details, owner: now.owner });
   }
   return result;
 }

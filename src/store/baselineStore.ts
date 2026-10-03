@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Collection } from '@/types/collection';
 import { nowIso } from '@/lib/ids';
+import { indexedDbStorage } from '@/lib/storage';
 
 export type Baseline = { snapshot: Collection; takenAt: string };
 
@@ -26,6 +27,11 @@ export const useBaselineStore = create<BaselineState>()(
           return { baselines: rest };
         }),
     }),
-    { name: 'collection-editor:baselines', version: 1 },
+    {
+      name: 'collection-editor:baselines',
+      version: 1,
+      storage: indexedDbStorage<Pick<BaselineState, 'baselines'>>(),
+      partialize: (s) => ({ baselines: s.baselines }),
+    },
   ),
 );

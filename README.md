@@ -19,9 +19,36 @@ npm run build      # typecheck + build de produção
 npm test           # testes unitários (vitest)
 ```
 
+## Disponibilizar para a equipe
+
+A ferramenta é um site estático (HTML/JS/CSS): não tem servidor nem banco de dados. Cada pessoa usa no próprio navegador, e os dados ficam no navegador dela.
+
+```bash
+npm ci
+npm run build      # gera a pasta dist/
+```
+
+A pasta `dist/` pode ser publicada em qualquer servidor de arquivos estáticos, em qualquer caminho (o build usa caminhos relativos):
+
+| Opção | Quando usar |
+| --- | --- |
+| **GitHub Pages** (Actions publicando `dist/`) | Repositório no GitHub; em repositório privado exige plano pago e o acesso pode ser restrito à organização (Enterprise) |
+| **Servidor interno** (Nginx, Apache, IIS) ou bucket S3/Azure Blob/GCS | Acesso só pela rede da empresa / VPN |
+| Netlify, Vercel, Cloudflare Pages | Publicação rápida com link; avalie a política de dados da empresa |
+| `npm run dev` / `npm run preview` na máquina de cada QA | Sem infraestrutura; cada um clona o repositório |
+
+**Compartilhar collections**: como os dados são locais, o fluxo de equipe é pelos arquivos — exporte o JSON, versione no Git (junto com o relatório de alterações como mensagem de commit/PR) e os colegas importam. A importação é fiel, então ida e volta não altera nada.
+
+## Armazenamento e limites
+
+- Os dados ficam no **IndexedDB** do navegador (por navegador e por endereço do site). A cota costuma ser de centenas de MB ou mais; o app pede ao navegador armazenamento persistente.
+- As edições são gravadas com um pequeno atraso (agrupando digitação) e ao esconder/fechar a aba. Se a gravação falhar, aparece um aviso para exportar.
+- Medido no Chromium: arquivo de **45 MB / 20.000 requisições** — análise 0,7 s, carga 2,4 s, digitação fluida; 5.000 requisições (11 MB) carregam em 0,3 s. A árvore é virtualizada.
+- Limpar os dados do site no navegador apaga as collections: exporte o que for importante.
+
 ## Stack
 
-React 19 + TypeScript · Vite · Zustand (+ immer, persistência em localStorage) · Monaco Editor (empacotado localmente) · Tailwind CSS v4 · lucide-react
+React 19 + TypeScript · Vite · Zustand (+ immer; dados no IndexedDB, preferências no localStorage) · Monaco Editor (empacotado localmente) · Tailwind CSS v4 · lucide-react
 
 ## Estrutura de pastas
 
@@ -166,10 +193,14 @@ Valores podem ser texto, número, booleano, null, JSON ou variável sem aspas (`
 
 ## Relatório de alterações
 
-Cada collection tem uma **base** (criada automaticamente na primeira abertura). O botão **Relatório** compara o estado atual com a base e gera:
+Cada collection tem uma **base** (criada automaticamente na primeira abertura ou importação). O botão **Relatório** compara o estado atual com a base e gera:
 
-- **Markdown** para compartilhar com o time (resumo, adicionados, removidos, alterações em lote no body e modificados campo a campo);
-- **Mensagem de commit** (`test(postman): atualiza <collection> (+3 IDs, 5 requisições alteradas)` + lista).
+- **Markdown** para compartilhar com o time:
+  - **Resumo** com a identificação de cada ID adicionado, modificado e excluído (ex.: `TC-LCV-003`) e dos folders/cenários afetados;
+  - **IDs de teste**: uma seção por ID (`TC-LCV-010 — modificado (antes: TC-LCV-001)`), com onde ele está e o que mudou em cada requisição (URL, método, headers, campos do body, scripts…);
+  - **Folders, cenários e collection**: mudanças de estrutura, com os IDs contidos em itens adicionados/excluídos;
+  - **Alterações em lote no body**: a mesma mudança aplicada em várias requisições, com os IDs afetados.
+- **Mensagem de commit**: `test(postman): atualiza <collection> (+1 ID, 3 IDs alterados, -1 ID)` + uma linha por ID (`TC-LCV-002: modificado — …`).
 
 Depois de compartilhar ou commitar, use **Marcar estado atual como base** para começar um novo ciclo.
 
