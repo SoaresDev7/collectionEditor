@@ -1,7 +1,8 @@
-import { Copy, Download, Keyboard, Moon, PanelRight, Plus, Sun, Trash2 } from 'lucide-react';
+import { Copy, Download, FileClock, FileText, Keyboard, Moon, PanelRight, PencilRuler, Plus, Sun, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
+import { useDialogStore } from '@/store/dialogStore';
 import { useCollectionActions } from '@/hooks/useCollectionActions';
 import { SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 import { Button, IconButton } from '@/components/ui/primitives';
@@ -47,7 +48,16 @@ export function Header() {
         <Trash2 size={15} />
       </IconButton>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex flex-wrap items-center gap-1">
+        <Button size="sm" variant="ghost" icon={<PencilRuler size={14} />} onClick={() => useDialogStore.getState().openBulkEdit()} title="Editar body em massa">
+          <span className="hidden md:inline">Edição em massa</span>
+        </Button>
+        <Button size="sm" variant="ghost" icon={<FileText size={14} />} onClick={() => useDialogStore.getState().setTemplates(true)} title="Templates de documentação">
+          <span className="hidden md:inline">Templates</span>
+        </Button>
+        <Button size="sm" icon={<FileClock size={14} />} onClick={() => useDialogStore.getState().setReport(true)} disabled={!activeId} title="Relatório de alterações (Alt+R)">
+          Relatório
+        </Button>
         <Button size="sm" icon={<Download size={14} />} onClick={actions.exportActive} disabled={!activeId} title="Ctrl+E">
           Exportar
         </Button>

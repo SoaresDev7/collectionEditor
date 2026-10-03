@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { AnyNode, Collection, Folder, NodeRef, Scenario, TestId } from '@/types/collection';
+import type { AnyNode, Collection, NodeRef } from '@/types/collection';
 import { buildMockCollection } from '@/data/mockCollection';
 import { createCollection, createFolder, createRequest, createScenario, createTestId } from '@/lib/factories';
 import { cloneCollection, cloneFolder, cloneRequest, cloneScenario, cloneTestId } from '@/lib/clone';
-import { formatTestIdName, maxTestIdNumber, nextTestIdName, uniqueName } from '@/lib/nomenclature';
+import { formatTestIdName, maxTestIdNumber, nextTestIdName, parseTestIdNumber, sanitizeIdCode, suggestIdCode, uniqueName } from '@/lib/nomenclature';
 import { childArray, findPath, nearest } from '@/lib/tree';
 import { nowIso } from '@/lib/ids';
 
@@ -27,16 +27,25 @@ type CollectionState = {
   duplicateNode: (id: string) => string | null;
   /** Cria `count` cópias de um ID de teste com numeração sequencial. Retorna os ids criados. */
   duplicateTestIdN: (id: string, count: number) => string[];
-  /** Renomeia todos os IDs do folder em sequência (001, 002...) usando o prefixo atual. */
-  renumberFolderTestIds: (folderId: string) => void;
+  /** Renomeia todos os IDs do cenário em sequência (TC-XXX-001, 002...) na ordem atual. */
+  renumberScenarioTestIds: (scenarioId: string) => void;
+  /** Troca o código do cenário e renomeia os IDs que seguiam o código anterior. */
+  setScenarioIdCode: (scenarioId: string, code: string) => void;
+  /** Substitui o body de várias requisições numa única alteração. */
+  applyBodies: (bodies: { requestId: string; body: string }[]) => void;
 };
 
 const siblingNames = (parent: NodeRef) => (childArray(parent) ?? []).map((n) => n.name);
 
-/** Renumera os IDs de um cenário recém-copiado, continuando a sequência do folder. */
-function renumberTestIds(folder: Folder, testIds: TestId[]): void {
-  let next = maxTestIdNumber(folder) + 1;
-  for (const t of testIds) t.name = formatTestIdName(folder.idNomenclaturePrefix, next++);
+/** Migração v1 → v2: prefixo de nomenclatura saiu do folder e virou código do cenário. */
+function migrateV1(collections: Collection[]): Collection[] {
+  for (const c of collections) {
+    for (const f of c.folders) {
+      delete (f as { idNomenclaturePrefix?: string }).idNomenclaturePrefix;
+      for (const s of f.scenarios) s.idCode ??= suggestIdCode(s.name);
+    }
+  }
+  return collections;
 }
 
 export const useCollectionStore = create<CollectionState>()(
@@ -112,13 +121,12 @@ export const useCollectionStore = create<CollectionState>()(
                 return f.id;
               }
               case 'folder': {
-                const s = createScenario({ name: uniqueName('Novo cenário', names, 'novo') });
+                const s = createScenario({ name: uniqueName('Novo cenário', names, 'novo'), idCode: 'NOV' });
                 parent.node.scenarios.push(s);
                 return s.id;
               }
               case 'scenario': {
-                const folder = nearest(path, 'folder')!.node;
-                const t = createTestId({ name: nextTestIdName(folder) });
+                const t = createTestId({ name: nextTestIdName(parent.node) });
                 parent.node.testIds.push(t);
                 return t.id;
               }
@@ -159,17 +167,15 @@ export const useCollectionStore = create<CollectionState>()(
                 break;
               }
               case 'scenario': {
-                const folder = nearest(path, 'folder')!.node;
-                const s: Scenario = cloneScenario(ref.node);
-                s.name = uniqueName(ref.node.name, names);
-                renumberTestIds(folder, s.testIds);
-                copy = s;
+                // A cópia mantém código e IDs (a numeração é por cenário).
+                copy = cloneScenario(ref.node);
+                copy.name = uniqueName(ref.node.name, names);
                 break;
               }
               case 'testId': {
-                const folder = nearest(path, 'folder')!.node;
+                const scenario = nearest(path, 'scenario')!.node;
                 copy = cloneTestId(ref.node);
-                copy.name = nextTestIdName(folder);
+                copy.name = nextTestIdName(scenario);
                 break;
               }
               case 'request': {
@@ -189,33 +195,62 @@ export const useCollectionStore = create<CollectionState>()(
             const path = findPath(c, id);
             const ref = path?.[path.length - 1];
             if (!path || ref?.kind !== 'testId' || count < 1) return [];
-            const folder = nearest(path, 'folder')!.node;
             const scenario = nearest(path, 'scenario')!.node;
             const index = scenario.testIds.findIndex((t) => t.id === id);
 
-            let next = maxTestIdNumber(folder) + 1;
+            let next = maxTestIdNumber(scenario) + 1;
             const copies = Array.from({ length: count }, () => {
               const t = cloneTestId(ref.node);
-              t.name = formatTestIdName(folder.idNomenclaturePrefix, next++);
+              t.name = formatTestIdName(scenario.idCode, next++);
               return t;
             });
             scenario.testIds.splice(index + 1, 0, ...copies);
             return copies.map((t) => t.id);
           }) ?? [],
 
-        renumberFolderTestIds: (folderId) =>
+        renumberScenarioTestIds: (scenarioId) =>
           mutateActive((c) => {
-            const folder = c.folders.find((f) => f.id === folderId);
-            if (!folder) return;
-            let n = 1;
-            for (const s of folder.scenarios)
-              for (const t of s.testIds) t.name = formatTestIdName(folder.idNomenclaturePrefix, n++);
+            const ref = findPath(c, scenarioId)?.at(-1);
+            if (ref?.kind !== 'scenario') return;
+            ref.node.testIds.forEach((t, i) => (t.name = formatTestIdName(ref.node.idCode, i + 1)));
+          }),
+
+        setScenarioIdCode: (scenarioId, code) =>
+          mutateActive((c) => {
+            const ref = findPath(c, scenarioId)?.at(-1);
+            if (ref?.kind !== 'scenario') return;
+            const scenario = ref.node;
+            const next = sanitizeIdCode(code);
+            const previous = scenario.idCode;
+            scenario.idCode = next;
+            if (!next || !previous || next === previous) return;
+            for (const t of scenario.testIds) {
+              const n = parseTestIdNumber(previous, t.name);
+              if (n !== null) t.name = formatTestIdName(next, n);
+            }
+          }),
+
+        applyBodies: (bodies) =>
+          mutateActive((c) => {
+            const byId = new Map(bodies.map((b) => [b.requestId, b.body]));
+            for (const f of c.folders)
+              for (const s of f.scenarios)
+                for (const t of s.testIds)
+                  for (const r of t.requests) {
+                    const body = byId.get(r.id);
+                    if (body !== undefined) r.body = body;
+                  }
           }),
       };
     }),
     {
       name: 'collection-editor:data',
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as { collections: Collection[]; activeCollectionId: string | null };
+        if (version < 2) state.collections = migrateV1(state.collections ?? []);
+        return state as CollectionState;
+      },
       onRehydrateStorage: () => (state) => {
         // Primeira execução: carrega o exemplo.
         if (state && state.collections.length === 0) state.addCollection(buildMockCollection());

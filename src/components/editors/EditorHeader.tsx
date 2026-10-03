@@ -1,6 +1,8 @@
-import { Copy, CopyPlus, Plus, Trash2 } from 'lucide-react';
+import { Copy, CopyPlus, PencilRuler, Plus, Trash2 } from 'lucide-react';
 import { CHILD_KIND, KIND_LABEL, type NodeRef } from '@/types/collection';
 import { useNodeActions } from '@/hooks/useNodeActions';
+import { useDialogStore } from '@/store/dialogStore';
+import { walk } from '@/lib/tree';
 import { Button } from '@/components/ui/primitives';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 
@@ -29,6 +31,20 @@ export function EditorHeader({ refNode }: { refNode: NodeRef }) {
         {refNode.kind === 'testId' && (
           <Button size="sm" icon={<CopyPlus size={14} />} onClick={() => actions.duplicateTestIdN(id)}>
             Duplicar N vezes
+          </Button>
+        )}
+        {refNode.kind !== 'request' && (
+          <Button
+            size="sm"
+            icon={<PencilRuler size={14} />}
+            title="Editar campos do body nas requisições dos IDs selecionados"
+            onClick={() => {
+              const ids: string[] = [];
+              walk(refNode, (r) => r.kind === 'testId' && ids.push(r.node.id));
+              useDialogStore.getState().openBulkEdit(refNode.kind === 'collection' ? [] : ids);
+            }}
+          >
+            Editar body em massa
           </Button>
         )}
         {!isRoot && (

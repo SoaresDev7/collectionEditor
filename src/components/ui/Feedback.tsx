@@ -14,7 +14,7 @@ export function Toasts() {
   const toasts = useFeedbackStore((s) => s.toasts);
   const dismiss = useFeedbackStore((s) => s.dismiss);
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col gap-2" aria-live="polite">
+    <div className="pointer-events-none fixed top-14 right-4 z-[60] flex flex-col gap-2" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}
@@ -38,11 +38,12 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        data-small
         className="w-full max-w-md rounded-lg border border-line bg-panel p-5 shadow-xl"
         onMouseDown={(e) => e.stopPropagation()}
       >

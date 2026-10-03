@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useUiStore } from '@/store/uiStore';
 import { useCollectionStore } from '@/store/collectionStore';
+import { useDialogStore } from '@/store/dialogStore';
 import { useNodeActions } from './useNodeActions';
 import { useCollectionActions } from './useCollectionActions';
 
@@ -9,6 +10,8 @@ export const SHORTCUTS: { keys: string; description: string }[] = [
   { keys: 'Alt+N', description: 'Adicionar filho ao item selecionado' },
   { keys: 'Ctrl+D', description: 'Duplicar item selecionado' },
   { keys: 'Ctrl+E', description: 'Exportar collection' },
+  { keys: 'Alt+R', description: 'Relatório de alterações' },
+  { keys: 'Alt+M', description: 'Edição em massa do body' },
   { keys: 'Ctrl+B', description: 'Mostrar/ocultar painel de variáveis' },
   { keys: 'Ctrl+Shift+L', description: 'Alternar tema claro/escuro' },
 ];
@@ -36,10 +39,12 @@ export function useKeyboardShortcuts() {
       if (mod && key === 'k') return run(() => document.getElementById('tree-search')?.focus());
       if (mod && key === 'e') return run(collectionActions.exportActive);
       if (mod && key === 'b') return run(ui.toggleVariablesPanel);
+      if (e.altKey && e.code === 'KeyR') return run(() => useDialogStore.getState().setReport(true));
+      if (e.altKey && e.code === 'KeyM') return run(() => useDialogStore.getState().openBulkEdit());
       if (mod && e.shiftKey && key === 'l') return run(ui.toggleTheme);
       if (inField) return;
       if (mod && key === 'd' && selected) return run(() => nodeActions.duplicate(selected));
-      if (e.altKey && key === 'n' && selected) return run(() => nodeActions.add(selected));
+      if (e.altKey && e.code === 'KeyN' && selected) return run(() => nodeActions.add(selected));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

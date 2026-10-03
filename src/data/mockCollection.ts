@@ -30,16 +30,16 @@ export function buildMockCollection(): Collection {
       createFolder({
         name: 'Autenticação',
         description: 'Login, refresh e logout de usuários.',
-        idNomenclaturePrefix: 'AUTH_',
         variables: [createVariable('folder', { key: 'authPath', value: '/auth' })],
         scenarios: [
           createScenario({
             name: 'Login com credenciais válidas',
+            idCode: 'LCV',
             description: 'Usuário existente autentica e recebe tokens.',
             variables: [createVariable('scenario', { key: 'username', value: 'qa.user@example.com' })],
             testIds: [
               createTestId({
-                name: 'AUTH_001',
+                name: 'TC-LCV-001',
                 description: 'Deve retornar 200 e um accessToken.',
                 requests: [
                   createRequest({
@@ -55,7 +55,7 @@ export function buildMockCollection(): Collection {
                 variables: [createVariable('testId', { key: 'password', value: 'S3nh@Forte' })],
               }),
               createTestId({
-                name: 'AUTH_002',
+                name: 'TC-LCV-002',
                 description: 'Deve retornar refreshToken válido.',
                 requests: [
                   createRequest({
@@ -71,10 +71,11 @@ export function buildMockCollection(): Collection {
           }),
           createScenario({
             name: 'Login com credenciais inválidas',
+            idCode: 'LCI',
             description: 'Senha errada ou usuário inexistente devem ser rejeitados.',
             testIds: [
               createTestId({
-                name: 'AUTH_003',
+                name: 'TC-LCI-001',
                 description: 'Senha incorreta deve retornar 401.',
                 requests: [
                   createRequest({
@@ -94,15 +95,15 @@ export function buildMockCollection(): Collection {
       createFolder({
         name: 'Usuários',
         description: 'CRUD de usuários.',
-        idNomenclaturePrefix: 'USER_',
         preRequestScripts: "// Garante que existe token antes de chamar endpoints de usuário\nif (!pm.collectionVariables.get('accessToken')) {\n  console.warn('accessToken ausente');\n}\n",
         scenarios: [
           createScenario({
             name: 'Cadastro de usuário',
+            idCode: 'CAD',
             description: 'Criação de usuários com dados válidos e inválidos.',
             testIds: [
               createTestId({
-                name: 'USER_001',
+                name: 'TC-CAD-001',
                 description: 'Criar usuário com todos os campos obrigatórios retorna 201.',
                 requests: [
                   createRequest({
@@ -126,10 +127,11 @@ export function buildMockCollection(): Collection {
           }),
           createScenario({
             name: 'Remoção de usuário',
+            idCode: 'REM',
             description: 'Exclusão lógica de usuários.',
             testIds: [
               createTestId({
-                name: 'USER_002',
+                name: 'TC-REM-001',
                 description: 'DELETE em usuário existente retorna 204.',
                 requests: [
                   createRequest({

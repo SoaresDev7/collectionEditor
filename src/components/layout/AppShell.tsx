@@ -7,6 +7,11 @@ import { Sidebar } from '@/components/sidebar/Sidebar';
 import { NodeEditor } from '@/components/editors/NodeEditor';
 import { VariablesPanel } from '@/components/variables/VariablesPanel';
 import { ConfirmDialog, PromptDialog, Toasts } from '@/components/ui/Feedback';
+import { BulkEditDialog } from '@/components/bulk/BulkEditDialog';
+import { ReportDialog } from '@/components/report/ReportDialog';
+import { TemplatesDialog } from '@/components/templates/TemplatesDialog';
+import { useActiveCollection } from '@/store/collectionStore';
+import { useBaselineStore } from '@/store/baselineStore';
 import { IconButton, cx } from '@/components/ui/primitives';
 import { Header } from './Header';
 import { Breadcrumb } from './Breadcrumb';
@@ -20,6 +25,13 @@ export function AppShell() {
   const mainRef = useRef<HTMLElement>(null);
 
   useKeyboardShortcuts();
+
+  // Toda collection precisa de uma base para o relatório de alterações.
+  const collection = useActiveCollection();
+  const hasBaseline = useBaselineStore((s) => (collection ? !!s.baselines[collection.id] : true));
+  useEffect(() => {
+    if (collection && !hasBaseline) useBaselineStore.getState().setBaseline(collection);
+  }, [collection, hasBaseline]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -69,6 +81,9 @@ export function AppShell() {
           </div>
         )}
       </div>
+      <BulkEditDialog />
+      <ReportDialog />
+      <TemplatesDialog />
       <Toasts />
       <ConfirmDialog />
       <PromptDialog />

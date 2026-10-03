@@ -61,6 +61,8 @@ export type Scenario = Scripted & {
   id: string;
   name: string;
   description: string;
+  /** Código de até 3 letras usado nos títulos dos IDs: TC-<código>-001. */
+  idCode: string;
   testIds: TestId[];
   variables: Variable[];
 };
@@ -69,8 +71,6 @@ export type Folder = Scripted & {
   id: string;
   name: string;
   description: string;
-  /** Prefixo usado para nomear IDs de teste, ex.: "USER_" → USER_001. */
-  idNomenclaturePrefix: string;
   scenarios: Scenario[];
   variables: Variable[];
 };

@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
-import { ListOrdered } from 'lucide-react';
-import { CHILD_KIND, KIND_LABEL, SCOPE_BY_KIND, type NodePath, type NodeRef, type Variable } from '@/types/collection';
+import { CHILD_KIND, SCOPE_BY_KIND, type NodePath, type NodeRef, type Variable } from '@/types/collection';
 import { useCollectionStore } from '@/store/collectionStore';
 import { useUiStore } from '@/store/uiStore';
-import { confirmDialog, notify } from '@/store/feedbackStore';
 import { childrenOf, nearest, walk } from '@/lib/tree';
 import { nextTestIdName } from '@/lib/nomenclature';
-import { Badge, Button, Field, Input, Tabs, Textarea } from '@/components/ui/primitives';
+import { Badge, Tabs } from '@/components/ui/primitives';
 import { EditorHeader } from './EditorHeader';
 import { ChildrenList } from './ChildrenList';
 import { NameField } from './shared/NameField';
 import { ScriptEditor, scriptBadge } from './shared/ScriptEditor';
 import { VariablesTable } from './shared/VariablesTable';
+import { IdCodeField } from './shared/IdCodeField';
+import { DescriptionField } from './shared/DescriptionField';
 
 type GroupRef = Exclude<NodeRef, { kind: 'request' }>;
 
@@ -34,6 +34,13 @@ const SCRIPT_HELP: Record<GroupRef['kind'], { pre: string; post: string }> = {
   },
 };
 
+const CHILDREN_TAB_LABEL: Partial<Record<string, string>> = {
+  folder: 'Folders',
+  scenario: 'Cenários',
+  testId: 'IDs de Teste',
+  request: 'Requisições',
+};
+
 const DESCRIPTION_LABEL: Record<GroupRef['kind'], string> = {
   collection: 'Descrição',
   folder: 'Contexto / funcionalidade',
@@ -53,14 +60,13 @@ export function GroupEditor({ path }: { path: NodePath }) {
   const ref = path[path.length - 1] as GroupRef;
   const node = ref.node;
   const updateNode = useCollectionStore((s) => s.updateNode);
-  const renumber = useCollectionStore((s) => s.renumberFolderTestIds);
   const tab = useUiStore((s) => s.editorTab[ref.kind] ?? (CHILD_KIND[ref.kind] ? 'children' : 'variables'));
   const setTab = (t: string) => useUiStore.getState().setEditorTab(ref.kind, t);
   const scope = SCOPE_BY_KIND[ref.kind]!;
   const childKind = CHILD_KIND[ref.kind]!;
   const counts = useMemo(() => stats(ref), [ref]);
 
-  const folder = nearest(path, 'folder')?.node;
+  const scenario = nearest(path, 'scenario')?.node;
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,38 +76,10 @@ export function GroupEditor({ path }: { path: NodePath }) {
         <NameField
           path={path}
           label={ref.kind === 'testId' ? 'Título do ID' : 'Nome'}
-          hint={ref.kind === 'testId' && folder ? `Padrão do folder: ${folder.idNomenclaturePrefix}NNN (próximo: ${nextTestIdName(folder)})` : undefined}
+          hint={ref.kind === 'testId' && scenario ? `Padrão do cenário: TC-${scenario.idCode}-NNN (próximo livre: ${nextTestIdName(scenario)})` : undefined}
         />
 
-        {ref.kind === 'folder' && (
-          <Field label="Prefixo de nomenclatura dos IDs" hint={`Ex.: ${ref.node.idNomenclaturePrefix || 'USER_'}001, ${ref.node.idNomenclaturePrefix || 'USER_'}002...`}>
-            <div className="flex gap-2">
-              <Input
-                value={ref.node.idNomenclaturePrefix}
-                className="font-mono"
-                placeholder="USER_"
-                onChange={(e) => updateNode(node.id, { idNomenclaturePrefix: e.target.value.toUpperCase() })}
-              />
-              <Button
-                icon={<ListOrdered size={14} />}
-                title="Renomeia todos os IDs do folder em sequência com o prefixo atual"
-                onClick={async () => {
-                  const ok = await confirmDialog({
-                    title: 'Renumerar IDs',
-                    message: `Todos os IDs deste folder serão renomeados para ${ref.node.idNomenclaturePrefix}001, ${ref.node.idNomenclaturePrefix}002... na ordem atual.`,
-                    confirmLabel: 'Renumerar',
-                  });
-                  if (ok) {
-                    renumber(node.id);
-                    notify('success', 'IDs renumerados.');
-                  }
-                }}
-              >
-                Renumerar
-              </Button>
-            </div>
-          </Field>
-        )}
+        {ref.kind === 'scenario' && <IdCodeField path={path} />}
 
         {ref.kind === 'collection' && (
           <div className="flex flex-wrap items-end gap-2 text-xs text-muted">
@@ -116,9 +94,7 @@ export function GroupEditor({ path }: { path: NodePath }) {
           </div>
         )}
 
-        <Field label={DESCRIPTION_LABEL[ref.kind]} className="md:col-span-2">
-          <Textarea value={node.description} onChange={(e) => updateNode(node.id, { description: e.target.value })} />
-        </Field>
+        <DescriptionField path={path} label={DESCRIPTION_LABEL[ref.kind]} />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -126,7 +102,7 @@ export function GroupEditor({ path }: { path: NodePath }) {
           value={tab}
           onChange={setTab}
           tabs={[
-            { id: 'children', label: `${KIND_LABEL[childKind]}s`, badge: <Badge>{childrenOf(ref).length}</Badge> },
+            { id: 'children', label: CHILDREN_TAB_LABEL[childKind], badge: <Badge>{childrenOf(ref).length}</Badge> },
             { id: 'variables', label: 'Variáveis', badge: node.variables.length ? <Badge>{node.variables.length}</Badge> : null },
             { id: 'pre', label: 'Pré-request', badge: scriptBadge(node.preRequestScripts) },
             { id: 'post', label: 'Pós-request', badge: scriptBadge(node.postRequestScripts) },

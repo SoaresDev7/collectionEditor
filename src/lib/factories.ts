@@ -10,6 +10,7 @@ import type {
   VariableScope,
 } from '@/types/collection';
 import { nowIso, uid } from './ids';
+import { suggestIdCode } from './nomenclature';
 
 const scripts = () => ({ preRequestScripts: '', postRequestScripts: '' });
 
@@ -44,7 +45,7 @@ export const createRequest = (partial: Partial<Request> = {}): Request => ({
 
 export const createTestId = (partial: Partial<TestId> = {}): TestId => ({
   id: uid(),
-  name: 'ID_001',
+  name: 'TC-CEN-001',
   description: '',
   requests: [],
   variables: [],
@@ -52,21 +53,24 @@ export const createTestId = (partial: Partial<TestId> = {}): TestId => ({
   ...partial,
 });
 
-export const createScenario = (partial: Partial<Scenario> = {}): Scenario => ({
-  id: uid(),
-  name: 'Novo cenário',
-  description: '',
-  testIds: [],
-  variables: [],
-  ...scripts(),
-  ...partial,
-});
+export const createScenario = (partial: Partial<Scenario> = {}): Scenario => {
+  const name = partial.name ?? 'Novo cenário';
+  return {
+    id: uid(),
+    name,
+    description: '',
+    idCode: suggestIdCode(name),
+    testIds: [],
+    variables: [],
+    ...scripts(),
+    ...partial,
+  };
+};
 
 export const createFolder = (partial: Partial<Folder> = {}): Folder => ({
   id: uid(),
   name: 'Novo folder',
   description: '',
-  idNomenclaturePrefix: 'ID_',
   scenarios: [],
   variables: [],
   ...scripts(),
